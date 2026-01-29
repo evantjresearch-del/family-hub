@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #2563eb; --primary-dark: #1e40af; --secondary: #0891b2;
+      --accent: #f59e0b; --text-dark: #1f2937; --text-medium: #4b5563;
+      --text-light: #6b7280; --bg-white: #ffffff; --bg-light: #f9fafb;
+      --bg-lighter: #f3f4f6; --border: #e5e7eb; --border-light: #f3f4f6;
+      --font-heading: 'Merriweather', serif; --font-body: 'Source Sans 3', sans-serif;
+    }
+    body { font-family: var(--font-body); background: var(--bg-white); color: var(--text-dark); line-height: 1.6; }
+    .app-container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 100px; }
+    
+    .header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid var(--border); padding: 1.25rem 0; margin-bottom: 3rem; position: sticky; top: 0; z-index: 50; backdrop-filter: blur(8px); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .header-content { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; display: flex; justify-content: center; align-items: center; }
+    .logo-container { display: flex; align-items: center; justify-content: center; }
+    .logo-image { height: 120px; width: auto; cursor: pointer; transition: transform 0.2s ease; }
+    .logo-image:hover { transform: scale(1.02); }
+    
+    .quick-nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2.5rem; }
+    .quick-nav-item { background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem 1rem; text-align: center; cursor: pointer; transition: all 0.2s ease; }
+    .quick-nav-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1); border-color: var(--primary); }
+    .quick-nav-icon { width: 32px; height: 32px; stroke: var(--primary); margin: 0 auto 0.75rem; }
+    .quick-nav-label { font-weight: 600; font-size: 0.9rem; }
+    
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .page-header { margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--border-light); }
+    .page-title { font-family: var(--font-heading); font-size: 2.25rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.5rem; }
+    .page-subtitle { color: var(--text-medium); font-size: 1.1rem; }
+    
+    .card { background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+    .card:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-light); }
+    .card-title { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700; }
+    
+    .countdown-calendar-section { display: grid; grid-template-columns: 1fr 1.5fr; gap: 2rem; margin-bottom: 2.5rem; }
+    
+    .countdown-card { background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 8px; padding: 0; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+    .countdown-image { width: 100%; height: 180px; background: url('https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800') center/cover; position: relative; }
+    .countdown-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to bottom, transparent, rgba(37, 99, 235, 0.8)); display: flex; align-items: flex-end; padding: 1.5rem; }
+    .countdown-destination { color: white; font-size: 1.5rem; font-weight: 700; font-family: var(--font-heading); }
+    .countdown-body { padding: 2rem; text-align: center; color: white; }
+    .countdown-title { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; opacity: 0.9; }
+    .countdown-value { font-size: 3.5rem; font-weight: 700; font-family: var(--font-heading); margin-bottom: 0.5rem; }
+    .countdown-label { font-size: 1rem; opacity: 0.9; }
+    
+    .mini-calendar-card { background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+    .mini-calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+    .mini-calendar-title { font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; }
+    .mini-calendar-nav { display: flex; gap: 0.5rem; }
+    .mini-calendar-btn { background: none; border: 1px solid var(--border); padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; color: var(--text-medium); transition: all 0.2s ease; }
+    .mini-calendar-btn:hover { background: var(--bg-light); border-color: var(--primary); color: var(--primary); }
+    .mini-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem; }
+    .mini-calendar-day-header { text-align: center; padding: 0.5rem 0.25rem; font-weight: 600; font-size: 0.75rem; color: var(--text-medium); }
+    .mini-calendar-day { aspect-ratio: 1; background: var(--bg-light); border: 1px solid var(--border-light); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease; font-weight: 500; position: relative; }
+    .mini-calendar-day:hover { background: var(--bg-lighter); border-color: var(--primary); }
+    .mini-calendar-day.today { background: var(--primary); color: white; font-weight: 700; border-color: var(--primary); }
+    .mini-calendar-day.has-event::after { content: '•'; position: absolute; bottom: 2px; color: var(--accent); font-size: 1.2rem; }
+    
+    .upcoming-event { background: var(--bg-light); border-left: 4px solid var(--primary); padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 4px; cursor: pointer; }
+    .upcoming-event:hover { background: var(--bg-lighter); }
+    .upcoming-event.sport { border-left-color: #10b981; }
+    .upcoming-event.school { border-left-color: #8b5cf6; }
+    .upcoming-event.health { border-left-color: #ef4444; }
+    .upcoming-event.travel { border-left-color: #f59e0b; }
+    .upcoming-event.family { border-left-color: #2563eb; }
+    .event-date { font-size: 0.75rem; font-weight: 700; color: var(--text-medium); text-transform: uppercase; }
+    .event-time { font-size: 0.8rem; color: var(--primary); font-weight: 600; margin-top: 0.25rem; }
+    .event-title { font-weight: 600; margin-top: 0.25rem; }
+    
+    .standings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+    .standing-card { background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .standing-header { background: var(--primary); color: white; padding: 1rem 1.25rem; font-weight: 600; }
+    .standing-body { padding: 1rem 1.25rem; }
+    .standing-item { display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-light); }
+    .standing-item:last-child { border-bottom: none; }
+    .team-name { font-weight: 600; }
+    .team-record { color: var(--text-medium); font-size: 0.9rem; font-weight: 600; }
+    .next-game { background: var(--bg-lighter); padding: 1rem 1.25rem; border-top: 1px solid var(--border); font-size: 0.9rem; }
+    .next-game-label { font-weight: 600; margin-bottom: 0.25rem; }
+    .next-game-detail { color: var(--text-medium); }
+    
+    .map-card { background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); margin-bottom: 2rem; }
+    .map-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-light); background: var(--bg-light); }
+    .map-header h3 { font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .map-header p { font-size: 0.9rem; color: var(--text-medium); }
+    #worldMap { height: 450px; width: 100%; }
+    
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+    .photo-item { aspect-ratio: 1; border-radius: 6px; background: var(--bg-light); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-light); font-size: 2rem; cursor: pointer; transition: all 0.2s ease; }
+    .photo-item:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+    
+    /* Enhanced Calendar with Event Titles */
+    .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-light); flex-wrap: wrap; gap: 1rem; }
+    .calendar-month { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700; }
+    .calendar-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; }
+    .calendar-day-header { text-align: center; padding: 0.75rem 0.5rem; font-weight: 600; font-size: 0.85rem; color: var(--text-medium); text-transform: uppercase; background: var(--bg-light); border-radius: 4px; }
+    .calendar-day { min-height: 120px; background: var(--bg-light); border: 1px solid var(--border-light); border-radius: 6px; padding: 0.5rem; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; }
+    .calendar-day:hover { background: var(--bg-lighter); border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .calendar-day.today { border: 2px solid var(--primary); background: rgba(37, 99, 235, 0.05); }
+    .calendar-day.has-event { border-left: 4px solid var(--accent); }
+    .calendar-day-number { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-dark); }
+    .calendar-day.today .calendar-day-number { color: var(--primary); }
+    .calendar-events { display: flex; flex-direction: column; gap: 0.25rem; overflow-y: auto; flex: 1; }
+    .calendar-event { background: white; border: 1px solid var(--border); border-radius: 4px; padding: 0.35rem 0.5rem; font-size: 0.75rem; font-weight: 600; color: var(--text-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: all 0.2s ease; }
+    .calendar-event:hover { background: var(--primary); color: white; transform: translateX(2px); }
+    .calendar-event.sport { border-left: 3px solid #10b981; }
+    .calendar-event.school { border-left: 3px solid #8b5cf6; }
+    .calendar-event.health { border-left: 3px solid #ef4444; }
+    .calendar-event.travel { border-left: 3px solid #f59e0b; }
+    .calendar-event.recurring { font-style: italic; }
+    .calendar-event-time { color: var(--text-medium); font-size: 0.7rem; font-weight: 500; }
+    
+    .event-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; }
+    .event-item { background: var(--bg-light); border: 1px solid var(--border); border-radius: 6px; padding: 1.25rem; transition: all 0.2s ease; cursor: pointer; }
+    .event-item:hover { background: var(--bg-lighter); border-color: var(--primary); }
+    .event-item-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem; }
+    .event-item-title { font-weight: 700; font-size: 1.1rem; color: var(--text-dark); }
+    .event-item-time { font-size: 0.9rem; color: var(--text-medium); font-weight: 600; }
+    .event-item-details { color: var(--text-medium); font-size: 0.95rem; margin-bottom: 0.75rem; }
+    .event-item-meta { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .event-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.75rem; background: var(--bg-white); border: 1px solid var(--border); border-radius: 12px; font-size: 0.8rem; color: var(--text-medium); }
+    .event-badge.recurring { background: var(--primary); color: white; border-color: var(--primary); }
+    .event-attachments { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
+    .event-attachment { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem; background: white; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem; text-decoration: none; color: var(--primary); transition: all 0.2s ease; }
+    .event-attachment:hover { background: var(--bg-light); border-color: var(--primary); }
+    .attachment-icon { width: 14px; height: 14px; }
+    
+    /* Sync Status */
+    .sync-status { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; }
+    .sync-status.synced { border-color: #10b981; background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .sync-icon { width: 16px; height: 16px; }
+    
+    .timeline { position: relative; padding-left: 2.5rem; }
+    .timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--border); }
+    .timeline-item { position: relative; margin-bottom: 2rem; }
+    .timeline-item::before { content: ''; position: absolute; left: -2.5rem; top: 0.25rem; width: 14px; height: 14px; background: var(--primary); border-radius: 50%; border: 3px solid var(--bg-white); box-shadow: 0 0 0 2px var(--primary); }
+    .timeline-date { font-size: 0.9rem; color: var(--primary); font-weight: 700; margin-bottom: 0.5rem; text-transform: uppercase; }
+    .timeline-content { background: var(--bg-light); padding: 1.25rem; border-radius: 6px; border: 1px solid var(--border-light); }
+    .timeline-title { font-weight: 700; margin-bottom: 0.5rem; }
+    .timeline-text { color: var(--text-medium); font-size: 0.95rem; }
+    .timeline-source { display: inline-block; margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: var(--bg-white); border: 1px solid var(--border); border-radius: 4px; font-size: 0.8rem; color: var(--text-medium); }
+    
+    .trips-layout { display: grid; grid-template-columns: 300px 1fr; gap: 2rem; min-height: 600px; }
+    .trips-sidebar { border-right: 1px solid var(--border); padding-right: 2rem; }
+    .trip-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .trip-item { padding: 1rem; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; background: var(--bg-white); transition: all 0.2s ease; }
+    .trip-item:hover { background: var(--bg-light); border-color: var(--primary); }
+    .trip-item.active { background: var(--primary); color: white; }
+    .trip-item-name { font-weight: 600; margin-bottom: 0.25rem; }
+    .trip-item-dates { font-size: 0.85rem; color: var(--text-medium); }
+    .trip-item.active .trip-item-name, .trip-item.active .trip-item-dates { color: white; }
+    .trip-detail { background: var(--bg-light); border-radius: 8px; padding: 2rem; }
+    .trip-header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--border); }
+    .trip-title { font-family: var(--font-heading); font-size: 2rem; margin-bottom: 0.5rem; }
+    .trip-meta { display: flex; gap: 2rem; color: var(--text-medium); flex-wrap: wrap; }
+    .trip-tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border-light); }
+    .trip-tab { padding: 0.75rem 1.5rem; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--text-medium); cursor: pointer; font-family: var(--font-body); font-weight: 600; transition: all 0.2s ease; }
+    .trip-tab:hover { color: var(--primary); }
+    .trip-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .trip-tab-content { display: none; }
+    .trip-tab-content.active { display: block; }
+    .itinerary-day { background: white; border: 1px solid var(--border); border-radius: 6px; padding: 1.25rem; margin-bottom: 1rem; }
+    .itinerary-day-header { display: flex; justify-content: space-between; margin-bottom: 1rem; }
+    .itinerary-day-title { font-weight: 700; }
+    .itinerary-activities { display: flex; flex-direction: column; gap: 0.75rem; }
+    .activity-item { display: flex; gap: 1rem; padding: 0.75rem; background: var(--bg-light); border-radius: 4px; }
+    .activity-time { font-weight: 600; color: var(--primary); min-width: 70px; font-size: 0.85rem; }
+    .activity-name { font-weight: 600; margin-bottom: 0.25rem; }
+    .activity-description { font-size: 0.9rem; color: var(--text-medium); }
+    .documents-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+    .document-item { background: white; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; text-align: center; cursor: pointer; transition: all 0.2s ease; }
+    .document-item:hover { border-color: var(--primary); background: var(--bg-light); }
+    .document-icon { width: 48px; height: 48px; margin: 0 auto 0.75rem; stroke: var(--primary); }
+    .document-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem; }
+    .document-size { font-size: 0.8rem; color: var(--text-medium); }
+    
+    .sport-entries { display: grid; gap: 1.5rem; }
+    .sport-entry { background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; }
+    .sport-entry-header { display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-light); }
+    .sport-entry-title { font-weight: 700; font-size: 1.2rem; }
+    .sport-entry-athlete { color: var(--primary); font-weight: 600; }
+    .sport-badge { background: var(--primary); color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600; }
+    .sport-entry-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    .sport-detail { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+    .sport-detail-icon { width: 16px; height: 16px; stroke: var(--text-medium); }
+    .sport-result { background: var(--bg-light); padding: 1rem; border-radius: 6px; margin-top: 1rem; }
+    .sport-result-label { font-weight: 600; margin-bottom: 0.5rem; }
+    .sport-links { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .sport-link { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: white; border: 1px solid var(--border); border-radius: 6px; text-decoration: none; color: var(--primary); font-size: 0.85rem; font-weight: 600; }
+    .sport-link:hover { background: var(--bg-light); border-color: var(--primary); }
+    
+    .task-tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border-light); }
+    .task-tab { padding: 0.75rem 1.5rem; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--text-medium); cursor: pointer; font-family: var(--font-body); font-weight: 600; transition: all 0.2s ease; }
+    .task-tab:hover { color: var(--primary); }
+    .task-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .task-content { display: none; }
+    .task-content.active { display: block; }
+    .task-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .task-item { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; background: var(--bg-light); border: 1px solid var(--border-light); border-radius: 6px; cursor: pointer; }
+    .task-checkbox { width: 20px; height: 20px; border: 2px solid var(--primary); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; }
+    .task-item.completed .task-checkbox { background: var(--primary); }
+    .task-item.completed .task-text { text-decoration: line-through; opacity: 0.6; }
+    .task-text { font-weight: 500; }
+    
+    /* Health with Attachments */
+    .health-grid { display: grid; gap: 1rem; }
+    .health-record { background: var(--bg-light); padding: 1.25rem; border-radius: 6px; border-left: 4px solid var(--primary); transition: all 0.2s ease; cursor: pointer; }
+    .health-record:hover { background: var(--bg-lighter); transform: translateX(4px); }
+    .health-header { display: flex; justify-content: space-between; margin-bottom: 0.75rem; }
+    .health-name { font-weight: 700; font-size: 1.05rem; }
+    .health-date { font-size: 0.85rem; color: var(--text-medium); font-weight: 600; }
+    .health-detail { color: var(--text-medium); margin-bottom: 0.75rem; }
+    .health-attachments { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-light); }
+    
+    .link-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .link-item { display: flex; align-items: center; gap: 1rem; padding: 1.25rem 1.5rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; color: var(--text-dark); font-weight: 600; transition: all 0.2s ease; }
+    .link-item:hover { background: var(--bg-lighter); border-color: var(--primary); color: var(--primary); transform: translateX(4px); }
+    .link-icon { width: 20px; height: 20px; stroke: var(--primary); }
+    
+    .btn { background: var(--primary); color: white; border: none; padding: 0.75rem 1.75rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-family: var(--font-body); font-size: 1rem; transition: all 0.2s ease; }
+    .btn:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+    .btn-secondary { background: white; color: var(--primary); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--bg-light); }
+    .btn-small { padding: 0.5rem 1rem; font-size: 0.9rem; }
+    .btn-icon { display: inline-flex; align-items: center; gap: 0.5rem; }
+    
+    .form-group { margin-bottom: 1.5rem; }
+    .form-label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem; }
+    .form-input, .form-textarea, .form-select { width: 100%; background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; font-family: var(--font-body); font-size: 1rem; }
+    .form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    .form-textarea { resize: vertical; min-height: 100px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-checkbox-group { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg-light); border-radius: 6px; margin-bottom: 1rem; }
+    .form-checkbox { width: 20px; height: 20px; cursor: pointer; }
+    
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: 8px; padding: 2rem; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-light); }
+    .modal-title { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700; }
+    .close-modal { background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 1.5rem; padding: 0; }
+    
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid var(--border); padding: 0.75rem 0; z-index: 100; box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05); }
+    .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-around; padding: 0 1rem; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; cursor: pointer; padding: 0.5rem 0.75rem; border-radius: 6px; color: var(--text-medium); font-size: 0.75rem; font-weight: 600; min-width: 70px; transition: all 0.2s ease; }
+    .nav-item:hover { color: var(--primary); background: var(--bg-light); }
+    .nav-item.active { color: var(--primary); background: var(--bg-lighter); }
+    .nav-icon { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; fill: none; }
+    
+    .leaflet-popup-content-wrapper { border-radius: 8px; }
+    .leaflet-popup-content { margin: 1rem; font-family: var(--font-body); }
+    .popup-title { font-weight: 700; margin-bottom: 0.5rem; }
+    
+    .info-box { background: rgba(37, 99, 235, 0.1); border: 1px solid var(--primary); border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem; }
+    .info-box-title { font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    .info-box-text { font-size: 0.9rem; color: var(--text-medium); }
+    
+    @media (max-width: 968px) {
+      .trips-layout { grid-template-columns: 1fr; }
+      .trips-sidebar { border-right: none; border-bottom: 1px solid var(--border); padding-right: 0; padding-bottom: 1.5rem; }
+      .countdown-calendar-section { grid-template-columns: 1fr; }
+      #worldMap { height: 350px; }
+      .calendar-day { min-height: 90px; }
+    }
+    @media (max-width: 768px) {
+      .logo-image { height: 80px; }
+      .page-title { font-size: 1.75rem; }
+      .quick-nav { grid-template-columns: repeat(3, 1fr); }
+      .form-row { grid-template-columns: 1fr; }
+      .countdown-value { font-size: 2.5rem; }
+      .calendar-day { min-height: 70px; font-size: 0.7rem; }
+      .calendar-event { font-size: 0.65rem; padding: 0.25rem 0.35rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="logo-container">
+        <svg class="logo-image" onclick="navigateTo('home')" viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#0891b2;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="72" font-weight="900" fill="url(#logoGrad)">Family Hub</text>
+          <text x="50%" y="75%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#6b7280">Your family's central command</text>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-container">
+    <!-- HOME PAGE (Same as before) -->
+    <div id="page-home" class="page active">
+      <div class="page-header">
+        <h1 class="page-title">Welcome Home</h1>
+        <p class="page-subtitle">Everything that matters, in one place</p>
+      </div>
+
+      <div class="quick-nav">
+        <div class="quick-nav-item" onclick="navigateTo('calendar')">
+          <svg class="quick-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <div class="quick-nav-label">Calendar</div>
+        </div>
+        <div class="quick-nav-item" onclick="navigateTo('photos')">
+          <svg class="quick-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+          <div class="quick-nav-label">Photos</div>
+        </div>
+        <div class="quick-nav-item" onclick="navigateTo('memories')">
+          <svg class="quick-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          <div class="quick-nav-label">Memories</div>
+        </div>
+        <div class="quick-nav-item" onclick="navigateTo('trips')">
+          <svg class="quick-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          <div class="quick-nav-label">Trips</div>
+        </div>
+        <div class="quick-nav-item" onclick="navigateTo('timeline')">
+          <svg class="quick-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <div class="quick-nav-label">Timeline</div>
+        </div>
+        <div class="quick-nav-item" onclick="navigateTo('tasks')">
+          <svg class="quick-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          <div class="quick-nav-label">Tasks</div>
+        </div>
+        <div class="quick-nav-item" onclick="navigateTo('sport')">
+          <svg class="quick-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+          <div class="quick-nav-label">Sport</div>
+        </div>
+        <div class="quick-nav-item" onclick="navigateTo('health')">
+          <svg class="quick-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+          <div class="quick-nav-label">Health</div>
+        </div>
+        <div class="quick-nav-item" onclick="navigateTo('school')">
+          <svg class="quick-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+          <div class="quick-nav-label">School</div>
+        </div>
+      </div>
+
+      <!-- Countdown + Mini Calendar -->
+      <div class="countdown-calendar-section">
+        <div class="countdown-card">
+          <div class="countdown-image">
+            <div class="countdown-overlay">
+              <div class="countdown-destination">Japan 2026 🇯🇵</div>
+            </div>
+          </div>
+          <div class="countdown-body">
+            <div class="countdown-title">Countdown</div>
+            <div class="countdown-value" id="daysToJapan">248</div>
+            <div class="countdown-label">Days Until Departure</div>
+          </div>
+        </div>
+
+        <div class="mini-calendar-card">
+          <div class="mini-calendar-header">
+            <h3 class="mini-calendar-title">📅 Next 7 Days</h3>
+            <button class="mini-calendar-btn" onclick="navigateTo('calendar')">View All →</button>
+          </div>
+          <div id="upcomingEventsHome"></div>
+        </div>
+      </div>
+
+      <!-- Sports Standings -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Live Sports Standings</h2>
+        </div>
+        <div class="standings-grid">
+          <div class="standing-card">
+            <div class="standing-header">🏀 NBA - OKC Thunder</div>
+            <div class="standing-body">
+              <div class="standing-item"><span class="team-name">1. Oklahoma City</span><span class="team-record">39-9</span></div>
+              <div class="standing-item"><span class="team-name">2. Cleveland</span><span class="team-record">38-9</span></div>
+              <div class="standing-item"><span class="team-name">3. Boston</span><span class="team-record">33-14</span></div>
+            </div>
+            <div class="next-game">
+              <div class="next-game-label">Next Game</div>
+              <div class="next-game-detail">31 Jan @ Boston Celtics, 8:30pm AEDT</div>
+            </div>
+          </div>
+          <div class="standing-card">
+            <div class="standing-header">⚽ EPL - Man United</div>
+            <div class="standing-body">
+              <div class="standing-item"><span class="team-name">1. Liverpool</span><span class="team-record">50 pts</span></div>
+              <div class="standing-item"><span class="team-name">11. Man United</span><span class="team-record">26 pts</span></div>
+              <div class="standing-item"><span class="team-name">2. Arsenal</span><span class="team-record">43 pts</span></div>
+            </div>
+            <div class="next-game">
+              <div class="next-game-label">Next Game</div>
+              <div class="next-game-detail">1 Feb vs Brighton, 6:00am AEDT</div>
+            </div>
+          </div>
+          <div class="standing-card">
+            <div class="standing-header">🏀 NBL - JackJumpers</div>
+            <div class="standing-body">
+              <div class="standing-item"><span class="team-name">1. Melbourne United</span><span class="team-record">15-4</span></div>
+              <div class="standing-item"><span class="team-name">3. Tasmania</span><span class="team-record">12-7</span></div>
+              <div class="standing-item"><span class="team-name">2. Sydney Kings</span><span class="team-record">13-6</span></div>
+            </div>
+            <div class="next-game">
+              <div class="next-game-label">Next Game</div>
+              <div class="next-game-detail">31 Jan vs Adelaide 36ers, 7:30pm AEDT</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- World Map -->
+      <div class="map-card">
+        <div class="map-header">
+          <h3>Our Travel Adventures</h3>
+          <p>Past, present, and future destinations</p>
+        </div>
+        <div id="worldMap"></div>
+      </div>
+
+      <!-- Photos -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Recent Family Photos</h2>
+          <button class="btn-secondary btn-small" onclick="navigateTo('photos')">View All</button>
+        </div>
+        <div class="photo-grid">
+          <div class="photo-item">📷</div>
+          <div class="photo-item">📷</div>
+          <div class="photo-item">📷</div>
+          <div class="photo-item">📷</div>
+          <div class="photo-item">📷</div>
+          <div class="photo-item">📷</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENHANCED CALENDAR PAGE -->
+    <div id="page-calendar" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Family Calendar</h1>
+        <p class="page-subtitle">Manage events with iPhone sync</p>
+      </div>
+      
+      <!-- iCal Sync Info -->
+      <div class="info-box">
+        <div class="info-box-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          iPhone Calendar Sync
+        </div>
+        <div class="info-box-text">
+          Subscribe to your Family Hub calendar in iPhone Calendar app. When you update events on your phone, they'll automatically sync here. Export your calendar using the button below to subscribe in iOS Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar.
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="calendar-controls">
+          <h2 class="calendar-month" id="currentMonth">January 2026</h2>
+          <div class="calendar-actions">
+            <div class="sync-status synced">
+              <svg class="sync-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+              Synced with iPhone
+            </div>
+            <button class="btn-secondary btn-small" onclick="changeMonth(-1)">← Prev</button>
+            <button class="btn-secondary btn-small" onclick="changeMonth(1)">Next →</button>
+            <button class="btn-secondary btn-small" onclick="exportCalendar()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 0.25rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Export .ics
+            </button>
+          </div>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <button class="btn" style="margin-top: 1.5rem;" onclick="openModal('eventModal')">Add Event</button>
+      </div>
+
+      <!-- Upcoming Events List -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Upcoming Events</h2>
+        </div>
+        <div class="event-list" id="eventList">
+          <!-- Events populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- HEALTH PAGE with Attachments -->
+    <div id="page-health" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Health Records</h1>
+        <p class="page-subtitle">Family medical information with attachments</p>
+      </div>
+      <div class="card">
+        <div style="margin-bottom: 2rem;">
+          <label class="form-label">Filter by family member</label>
+          <select class="form-select" onchange="filterHealth(this.value)">
+            <option value="all">All family members</option>
+            <option value="evan">Evan</option>
+            <option value="finn">Finn</option>
+            <option value="darcy">Darcy</option>
+          </select>
+        </div>
+        <div class="health-grid">
+          <div class="health-record" data-person="finn">
+            <div class="health-header">
+              <span class="health-name">Finn</span>
+              <span class="health-date">15/01/2026</span>
+            </div>
+            <div class="health-detail">Annual sports physical - cleared for all activities</div>
+            <div class="health-attachments">
+              <a href="#" class="event-attachment">
+                <svg class="attachment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                Physical Report.pdf
+              </a>
+              <a href="#" class="event-attachment">
+                <svg class="attachment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                Clearance Form.pdf
+              </a>
+            </div>
+          </div>
+          <div class="health-record" data-person="darcy">
+            <div class="health-header">
+              <span class="health-name">Darcy</span>
+              <span class="health-date">08/01/2026</span>
+            </div>
+            <div class="health-detail">Eye test - new prescription, glasses ordered</div>
+            <div class="health-attachments">
+              <a href="#" class="event-attachment">
+                <svg class="attachment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                Prescription.pdf
+              </a>
+              <a href="#" class="event-attachment">
+                <svg class="attachment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path></svg>
+                Vision Test Results
+              </a>
+            </div>
+          </div>
+          <div class="health-record" data-person="evan">
+            <div class="health-header">
+              <span class="health-name">Evan</span>
+              <span class="health-date">20/12/2025</span>
+            </div>
+            <div class="health-detail">Annual checkup - all clear, continue current fitness routine</div>
+            <div class="health-attachments">
+              <a href="#" class="event-attachment">
+                <svg class="attachment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                Blood Work Results.pdf
+              </a>
+            </div>
+          </div>
+        </div>
+        <button class="btn" onclick="openModal('healthModal')" style="margin-top: 1.5rem;">Add Health Record</button>
+      </div>
+    </div>
+
+    <!-- EVENT MODAL -->
+    <div id="eventModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Add Event</h3>
+          <button class="close-modal" onclick="closeModal('eventModal')">×</button>
+        </div>
+        <form onsubmit="addEvent(event)">
+          <div class="form-group">
+            <label class="form-label">Event Title</label>
+            <input type="text" class="form-input" placeholder="e.g. Finn's Soccer Match" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input type="date" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Time</label>
+              <input type="time" class="form-input">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Location</label>
+            <input type="text" class="form-input" placeholder="e.g. Glenorchy Soccer Fields">
+          </div>
+          
+          <div class="form-checkbox-group">
+            <input type="checkbox" id="recurringEvent" class="form-checkbox">
+            <label for="recurringEvent" class="form-label" style="margin: 0;">🔁 Recurring Event</label>
+          </div>
+          
+          <div class="form-group" id="recurringOptions" style="display: none;">
+            <label class="form-label">Repeat Frequency</label>
+            <select class="form-select">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="biweekly">Bi-weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-select">
+              <option value="family">👨‍👩‍👦 Family</option>
+              <option value="sport">⚽ Sport</option>
+              <option value="school">📚 School</option>
+              <option value="health">💊 Health</option>
+              <option value="travel">✈️ Travel</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="form-textarea" placeholder="Additional details..."></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Links & Attachments</label>
+            <input type="url" class="form-input" placeholder="https://example.com" style="margin-bottom: 0.5rem;">
+            <input type="file" class="form-input" multiple style="padding: 0.5rem;">
+            <p style="font-size: 0.85rem; color: var(--text-medium); margin-top: 0.5rem;">Add relevant links or attach documents</p>
+          </div>
+          
+          <button type="submit" class="btn" style="width: 100%;">Save Event</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- HEALTH RECORD MODAL -->
+    <div id="healthModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Add Health Record</h3>
+          <button class="close-modal" onclick="closeModal('healthModal')">×</button>
+        </div>
+        <form onsubmit="addHealthRecord(event)">
+          <div class="form-group">
+            <label class="form-label">Family Member</label>
+            <select class="form-select" required>
+              <option value="">Select person...</option>
+              <option value="evan">Evan</option>
+              <option value="finn">Finn</option>
+              <option value="darcy">Darcy</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Record Type</label>
+            <select class="form-select">
+              <option value="checkup">Checkup</option>
+              <option value="vaccination">Vaccination</option>
+              <option value="test">Test Results</option>
+              <option value="prescription">Prescription</option>
+              <option value="specialist">Specialist Visit</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Details</label>
+            <textarea class="form-textarea" placeholder="Record details..." required></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Attachments</label>
+            <input type="file" class="form-input" multiple style="padding: 0.5rem;">
+            <p style="font-size: 0.85rem; color: var(--text-medium); margin-top: 0.5rem;">Attach test results, prescriptions, or related documents</p>
+          </div>
+          <button type="submit" class="btn" style="width: 100%;">Save Health Record</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- OTHER PAGES PLACEHOLDERS (Photos, Memories, Trips, Sport, Timeline, Tasks, School) -->
+    <div id="page-photos" class="page"><div class="page-header"><h1 class="page-title">Photos</h1></div><div class="card"><p>Photos page content...</p></div></div>
+    <div id="page-memories" class="page"><div class="page-header"><h1 class="page-title">Memories</h1></div><div class="card"><p>Memories page content...</p></div></div>
+    <div id="page-trips" class="page"><div class="page-header"><h1 class="page-title">Trips</h1></div><div class="card"><p>Trips page content...</p></div></div>
+    <div id="page-sport" class="page"><div class="page-header"><h1 class="page-title">Sport</h1></div><div class="card"><p>Sport page content...</p></div></div>
+    <div id="page-timeline" class="page"><div class="page-header"><h1 class="page-title">Timeline</h1></div><div class="card"><p>Timeline page content...</p></div></div>
+    <div id="page-tasks" class="page"><div class="page-header"><h1 class="page-title">Tasks</h1></div><div class="card"><p>Tasks page content...</p></div></div>
+    <div id="page-school" class="page"><div class="page-header"><h1 class="page-title">School</h1></div><div class="card"><p>School page content...</p></div></div>
+  </div>
+
+  <nav class="bottom-nav">
+    <div class="nav-container">
+      <div class="nav-item active" onclick="navigateTo('home')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+        <span>Home</span>
+      </div>
+      <div class="nav-item" onclick="navigateTo('calendar')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        <span>Calendar</span>
+      </div>
+      <div class="nav-item" onclick="navigateTo('trips')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        <span>Trips</span>
+      </div>
+      <div class="nav-item" onclick="navigateTo('sport')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+        <span>Sport</span>
+      </div>
+      <div class="nav-item" onclick="navigateTo('tasks')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        <span>Tasks</span>
+      </div>
+      <div class="nav-item" onclick="navigateTo('health')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+        <span>Health</span>
+      </div>
+    </div>
+  </nav>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Sample events data
+    var eventsData = [
+      { id: 1, title: "State Team Training", date: "2026-01-29", time: "10:00", category: "sport", recurring: "weekly", location: "KGV Oval" },
+      { id: 2, title: "Japan Planning Meeting", date: "2026-01-30", time: "19:00", category: "travel", recurring: false, location: "Home" },
+      { id: 3, title: "Darcy Basketball", date: "2026-01-31", time: "16:00", category: "sport", recurring: false, location: "School Gym" },
+      { id: 4, title: "Family Dinner", date: "2026-02-01", time: "18:30", category: "family", recurring: false, location: "Salamanca" },
+      { id: 5, title: "Finn's Match Day", date: "2026-02-02", time: "14:00", category: "sport", recurring: false, location: "Glenorchy" },
+      { id: 6, title: "School Term Starts", date: "2026-02-03", time: "08:30", category: "school", recurring: false, location: "St Virgil's" },
+      { id: 7, title: "Health Checkup", date: "2026-02-04", time: "09:00", category: "health", recurring: false, location: "Medical Centre" }
+    ];
+
+    function navigateTo(page) {
+      // Hide all pages
+      var pages = document.querySelectorAll('.page');
+      for (var i = 0; i < pages.length; i++) {
+        pages[i].classList.remove('active');
+      }
+      
+      // Show target page
+      var targetPage = document.getElementById('page-' + page);
+      if (targetPage) {
+        targetPage.classList.add('active');
+      }
+      
+      // Update nav items
+      var navItems = document.querySelectorAll('.nav-item');
+      for (var i = 0; i < navItems.length; i++) {
+        navItems[i].classList.remove('active');
+      }
+      
+      window.scrollTo(0, 0);
+    }
+
+    function updateCountdown() {
+      const japanDate = new Date('2026-10-01T00:00:00');
+      const now = new Date();
+      const days = Math.floor((japanDate - now) / (1000 * 60 * 60 * 24));
+      document.getElementById('daysToJapan').textContent = days;
+    }
+    setInterval(updateCountdown, 60000);
+    updateCountdown();
+
+    // Mini Calendar
+    // Next 7 Days Events
+    function renderUpcomingEvents() {
+      var container = document.getElementById('upcomingEventsHome');
+      if (!container) {
+        console.log('Container not found');
+        return;
+      }
+      
+      var html = '';
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Get events for next 7 days
+      for (var i = 0; i < eventsData.length; i++) {
+        var event = eventsData[i];
+        var eventDate = new Date(event.date);
+        eventDate.setHours(0, 0, 0, 0);
+        
+        var daysDiff = Math.floor((eventDate - today) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff >= 0 && daysDiff < 7) {
+          var dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          var dayName = dayNames[eventDate.getDay()];
+          var monthName = monthNames[eventDate.getMonth()];
+          var dayNum = eventDate.getDate();
+          var dateLabel = daysDiff === 0 ? 'TODAY' : dayName + ', ' + monthName + ' ' + dayNum;
+          
+          html += '<div class="upcoming-event ' + event.category + '" onclick="navigateTo(\'calendar\')">';
+          html += '<div class="event-date">' + dateLabel + '</div>';
+          if (event.time) {
+            html += '<div class="event-time">🕐 ' + event.time + '</div>';
+          }
+          html += '<div class="event-title">' + event.title + '</div>';
+          html += '</div>';
+        }
+      }
+      
+      if (html === '') {
+        html = '<div style="padding: 2rem; text-align: center; color: #6b7280;">No events in the next 7 days</div>';
+      }
+      
+      container.innerHTML = html;
+      console.log('Upcoming events rendered');
+    }
+    
+    // Call when page loads
+    renderUpcomingEvents();
+
+    // Full Calendar with Event Titles
+    let currentDate = new Date();
+    function renderCalendar() {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      document.getElementById('currentMonth').textContent = `${monthNames[month]} ${year}`;
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+      
+      // Day headers
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      dayNames.forEach(day => {
+        const header = document.createElement('div');
+        header.className = 'calendar-day-header';
+        header.textContent = day;
+        grid.appendChild(header);
+      });
+      
+      // Empty cells before first day
+      for (let i = 0; i < firstDay; i++) {
+        grid.appendChild(document.createElement('div'));
+      }
+      
+      const today = new Date();
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayEl = document.createElement('div');
+        dayEl.className = 'calendar-day';
+        
+        const dayNum = document.createElement('div');
+        dayNum.className = 'calendar-day-number';
+        dayNum.textContent = day;
+        dayEl.appendChild(dayNum);
+        
+        if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+          dayEl.classList.add('today');
+        }
+        
+        // Add events for this day
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayEvents = eventsData.filter(e => e.date === dateStr);
+        
+        if (dayEvents.length > 0) {
+          dayEl.classList.add('has-event');
+          const eventsContainer = document.createElement('div');
+          eventsContainer.className = 'calendar-events';
+          
+          dayEvents.forEach(event => {
+            const eventEl = document.createElement('div');
+            eventEl.className = `calendar-event ${event.category}${event.recurring ? ' recurring' : ''}`;
+            eventEl.innerHTML = `${event.time ? `<span class="calendar-event-time">${event.time}</span> ` : ''}${event.title}`;
+            eventEl.title = `${event.title} - ${event.location}`;
+            eventsContainer.appendChild(eventEl);
+          });
+          
+          dayEl.appendChild(eventsContainer);
+        }
+        
+        grid.appendChild(dayEl);
+      }
+      
+      // Render event list
+      renderEventList();
+    }
+    
+    function renderEventList() {
+      const eventList = document.getElementById('eventList');
+      if (!eventList) return;
+      
+      // Sort events by date
+      const sortedEvents = [...eventsData].sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      eventList.innerHTML = sortedEvents.map(event => `
+        <div class="event-item">
+          <div class="event-item-header">
+            <div class="event-item-title">${event.title}</div>
+            <div class="event-item-time">${event.time || ''}</div>
+          </div>
+          <div class="event-item-details">${new Date(event.date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })} • ${event.location}</div>
+          <div class="event-item-meta">
+            ${event.recurring ? '<span class="event-badge recurring">🔁 Recurring - ' + event.recurring.charAt(0).toUpperCase() + event.recurring.slice(1) + '</span>' : ''}
+            <span class="event-badge">${getCategoryIcon(event.category)} ${event.category.charAt(0).toUpperCase() + event.category.slice(1)}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    function getCategoryIcon(category) {
+      const icons = {
+        sport: '⚽',
+        school: '📚',
+        health: '💊',
+        travel: '✈️',
+        family: '👨‍👩‍👦'
+      };
+      return icons[category] || '📌';
+    }
+    
+    function changeMonth(delta) {
+      currentDate.setMonth(currentDate.getMonth() + delta);
+      renderCalendar();
+    }
+    renderCalendar();
+
+    // Export calendar as .ics file
+    function exportCalendar() {
+      let icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Family Hub//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Family Hub Calendar
+X-WR-TIMEZONE:Australia/Sydney
+
+`;
+      
+      eventsData.forEach(event => {
+        const eventDate = event.date.replace(/-/g, '');
+        const eventTime = event.time ? event.time.replace(':', '') + '00' : '000000';
+        
+        icsContent += `BEGIN:VEVENT
+UID:${event.id}@familyhub.local
+DTSTAMP:${eventDate}T${eventTime}Z
+DTSTART:${eventDate}T${eventTime}Z
+SUMMARY:${event.title}
+LOCATION:${event.location}
+DESCRIPTION:Category: ${event.category}${event.recurring ? ' | Recurring: ' + event.recurring : ''}
+STATUS:CONFIRMED
+END:VEVENT
+
+`;
+      });
+      
+      icsContent += 'END:VCALENDAR';
+      
+      // Create download link
+      const blob = new Blob([icsContent], { type: 'text/calendar' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'family-hub-calendar.ics';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      alert('Calendar exported! Subscribe to this .ics file in your iPhone Calendar app:\n\nSettings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar\n\nPaste the webcal:// URL when you host this file online.');
+    }
+
+    // World Map
+    let map;
+    function initMap() {
+      map = L.map('worldMap', {
+        center: [20, 100],
+        zoom: 2,
+        minZoom: 2,
+        maxZoom: 8
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      const destinations = [
+        { name: 'Japan 2026', coords: [35.6762, 139.6503], status: 'upcoming', dates: '1-13 Oct 2026' },
+        { name: 'Melbourne', coords: [-37.8136, 144.9631], status: 'upcoming', dates: '15-17 Mar 2026' },
+        { name: 'Tasmania', coords: [-42.8821, 147.3272], status: 'visited', dates: 'Dec 2025' },
+        { name: 'Sydney', coords: [-33.8688, 151.2093], status: 'visited', dates: 'Nov 2025' }
+      ];
+
+      destinations.forEach(dest => {
+        const color = dest.status === 'upcoming' ? '#2563eb' : '#10b981';
+        const icon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="background: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [24, 24]
+        });
+
+        L.marker(dest.coords, { icon: icon })
+          .addTo(map)
+          .bindPopup(`
+            <div class="popup-title">${dest.name}</div>
+            <div style="font-size: 0.85rem; color: var(--text-medium);">${dest.dates}</div>
+            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: ${color}; font-weight: 600;">
+              ${dest.status === 'upcoming' ? '📍 Upcoming' : '✓ Visited'}
+            </div>
+          `);
+      });
+    }
+    setTimeout(function() {
+      if (typeof L !== 'undefined') {
+        initMap();
+      } else {
+        console.log('Leaflet not loaded, retrying...');
+        setTimeout(initMap, 500);
+      }
+    }, 500);
+
+    // Modal functions
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.add('active');
+    }
+    
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+    }
+    
+    function addEvent(e) {
+      e.preventDefault();
+      alert('Event added and will sync to your iPhone Calendar! (Demo)');
+      closeModal('eventModal');
+    }
+    
+    function addHealthRecord(e) {
+      e.preventDefault();
+      alert('Health record added with attachments! (Demo)');
+      closeModal('healthModal');
+    }
+    
+    function filterHealth(person) {
+      document.querySelectorAll('.health-record').forEach(record => {
+        record.style.display = (person === 'all' || record.dataset.person === person) ? 'block' : 'none';
+      });
+    }
+
+    // Toggle recurring options
+    document.addEventListener('DOMContentLoaded', function() {
+      const recurringCheckbox = document.getElementById('recurringEvent');
+      const recurringOptions = document.getElementById('recurringOptions');
+      
+      if (recurringCheckbox) {
+        recurringCheckbox.addEventListener('change', function() {
+          recurringOptions.style.display = this.checked ? 'block' : 'none';
+        });
+      }
+    });
+  </script>
+</body>
+</html>
