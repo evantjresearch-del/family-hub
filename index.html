@@ -266,6 +266,22 @@
     .info-box-title { font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
     .info-box-text { font-size: 0.9rem; color: var(--text-medium); }
     
+    .photo-card { border-radius: 6px; background: var(--bg-light); border: 1px solid var(--border); overflow: hidden; cursor: pointer; transition: all 0.2s ease; }
+    .photo-card:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+    .photo-placeholder { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 2rem; background: var(--bg-lighter); }
+    .photo-info { padding: 0.75rem; font-weight: 600; font-size: 0.9rem; }
+
+    .memory-timeline { position: relative; padding-left: 2.5rem; }
+    .memory-timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--border); }
+    .memory-item { position: relative; margin-bottom: 2rem; }
+    .memory-item::before { content: ''; position: absolute; left: -2.5rem; top: 0.25rem; width: 14px; height: 14px; background: var(--primary); border-radius: 50%; border: 3px solid var(--bg-white); box-shadow: 0 0 0 2px var(--primary); }
+    .memory-date { font-size: 0.9rem; color: var(--primary); font-weight: 700; margin-bottom: 0.5rem; text-transform: uppercase; }
+    .memory-content { background: var(--bg-light); padding: 1.25rem; border-radius: 6px; border: 1px solid var(--border-light); }
+    .memory-title { font-weight: 700; margin-bottom: 0.5rem; font-size: 1.1rem; }
+    .memory-text { color: var(--text-medium); font-size: 0.95rem; line-height: 1.6; }
+    .memory-photos { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+    .memory-photo { width: 60px; height: 60px; background: var(--bg-lighter); border: 1px solid var(--border); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+
     @media (max-width: 968px) {
       .trips-layout { grid-template-columns: 1fr; }
       .trips-sidebar { border-right: none; border-bottom: 1px solid var(--border); padding-right: 0; padding-bottom: 1.5rem; }
@@ -288,16 +304,7 @@
   <header class="header">
     <div class="header-content">
       <div class="logo-container">
-        <svg class="logo-image" onclick="navigateTo('home')" viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
-              <stop offset="100%" style="stop-color:#0891b2;stop-opacity:1" />
-            </linearGradient>
-          </defs>
-          <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="72" font-weight="900" fill="url(#logoGrad)">Family Hub</text>
-          <text x="50%" y="75%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#6b7280">Your family's central command</text>
-        </svg>
+        <img class="logo-image" onclick="navigateTo('home')" src="Family Hub with sports and family icons.png" alt="Family Hub">
       </div>
     </div>
   </header>
@@ -775,6 +782,27 @@
         </div>
         <form onsubmit="addSportEntry(event)">
           <div class="form-group">
+            <label class="form-label">Participant</label>
+            <select class="form-select" id="sportParticipant" required>
+              <option value="">Select participant...</option>
+              <option value="finn">Finn</option>
+              <option value="darcy">Darcy</option>
+              <option value="dad">Dad</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sport</label>
+            <select class="form-select" id="sportSport" required>
+              <option value="">Select sport...</option>
+              <option value="soccer">Soccer</option>
+              <option value="futsal">Futsal</option>
+              <option value="basketball">Basketball</option>
+              <option value="rowing">Rowing</option>
+              <option value="table-tennis">Table Tennis</option>
+              <option value="golf">Golf</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label class="form-label">Entry Type</label>
             <select class="form-select" id="sportType" onchange="toggleSportFields()" required>
               <option value="">Select type...</option>
@@ -782,29 +810,45 @@
               <option value="training">Training Session</option>
             </select>
           </div>
-          <div class="form-group">
-            <label class="form-label">Date</label>
-            <input type="date" class="form-input" required>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Start Date</label>
+              <input type="date" class="form-input" id="sportStartDate" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">End Date (optional)</label>
+              <input type="date" class="form-input" id="sportEndDate">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Start Time</label>
+              <input type="time" class="form-input" id="sportStartTime" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">End Time (optional)</label>
+              <input type="time" class="form-input" id="sportEndTime">
+            </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Time</label>
-            <input type="time" class="form-input" required>
-          </div>
-          <div class="form-group" id="matchTitle" style="display: none;">
-            <label class="form-label">Match Title</label>
-            <input type="text" class="form-input" placeholder="e.g. Glenorchy Knights vs Kingborough">
-          </div>
-          <div class="form-group" id="trainingTitle" style="display: none;">
-            <label class="form-label">Training Title</label>
-            <input type="text" class="form-input" placeholder="e.g. State Team Training">
+            <label class="form-label">Title</label>
+            <input type="text" class="form-input" id="sportTitle" placeholder="e.g. Glenorchy Knights vs Kingborough">
           </div>
           <div class="form-group" id="matchResult" style="display: none;">
             <label class="form-label">Match Result (optional)</label>
             <input type="text" class="form-input" placeholder="e.g. 3-1 Win">
           </div>
           <div class="form-group">
+            <label class="form-label">Location</label>
+            <input type="text" class="form-input" id="sportLocation" placeholder="e.g. KGV Oval">
+          </div>
+          <div class="form-checkbox-group">
+            <input type="checkbox" id="sportAddToCalendar" class="form-checkbox" checked>
+            <label for="sportAddToCalendar" class="form-label" style="margin: 0;">Add to Family Calendar</label>
+          </div>
+          <div class="form-group">
             <label class="form-label">Notes</label>
-            <textarea class="form-textarea" placeholder="Performance notes, highlights..." required></textarea>
+            <textarea class="form-textarea" id="sportNotes" placeholder="Performance notes, highlights..."></textarea>
           </div>
           <button type="submit" class="btn" style="width: 100%;">Save Entry</button>
         </form>
@@ -970,15 +1014,15 @@
         <div class="trips-sidebar">
           <button class="btn" style="width: 100%; margin-bottom: 1rem;" onclick="openModal('tripModal')">Plan New Trip</button>
           <div class="trip-list">
-            <div class="trip-item active" onclick="showTrip('japan')">
+            <div class="trip-item active" onclick="showTrip('japan', event)">
               <div class="trip-item-name">🇯🇵 Japan 2026</div>
               <div class="trip-item-dates">Oct 1-13, 2026 • 13 days</div>
             </div>
-            <div class="trip-item" onclick="showTrip('melbourne')">
+            <div class="trip-item" onclick="showTrip('melbourne', event)">
               <div class="trip-item-name">🏙️ Melbourne Weekend</div>
               <div class="trip-item-dates">Mar 15-17, 2026 • 3 days</div>
             </div>
-            <div class="trip-item" onclick="showTrip('sydney')">
+            <div class="trip-item" onclick="showTrip('sydney', event)">
               <div class="trip-item-name">🌊 Sydney Trip</div>
               <div class="trip-item-dates">Nov 2025 • 4 days</div>
             </div>
@@ -996,10 +1040,10 @@
             </div>
           </div>
           <div class="trip-tabs">
-            <button class="trip-tab active" onclick="showTripTab('itinerary')">Itinerary</button>
-            <button class="trip-tab" onclick="showTripTab('documents')">Documents</button>
-            <button class="trip-tab" onclick="showTripTab('budget')">Budget</button>
-            <button class="trip-tab" onclick="showTripTab('notes')">Notes</button>
+            <button class="trip-tab active" onclick="showTripTab('itinerary', event)">Itinerary</button>
+            <button class="trip-tab" onclick="showTripTab('documents', event)">Documents</button>
+            <button class="trip-tab" onclick="showTripTab('budget', event)">Budget</button>
+            <button class="trip-tab" onclick="showTripTab('notes', event)">Notes</button>
           </div>
           
           <!-- Itinerary Tab -->
@@ -1332,7 +1376,7 @@
     <div id="page-sport" class="page">
       <div class="page-header">
         <h1 class="page-title">Sport Tracking</h1>
-        <p class="page-subtitle">Finn's soccer journey with Tasmania State Team</p>
+        <p class="page-subtitle">Matches, training & activities</p>
       </div>
       
       <div class="card">
@@ -1716,31 +1760,36 @@
             <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; flex-shrink: 0;">📍</div>
             <div>
               <div style="font-weight: 600; margin-bottom: 0.25rem;">Address</div>
-  </div>
+              <div style="color: var(--text-medium);">Patrick St, Hobart TAS 7000</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
   <nav class="bottom-nav">
     <div class="nav-container">
-      <div class="nav-item active" onclick="navigateTo('home')">
+      <div class="nav-item active" data-page="home" onclick="navigateTo('home')">
         <svg class="nav-icon" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
         <span>Home</span>
       </div>
-      <div class="nav-item" onclick="navigateTo('calendar')">
+      <div class="nav-item" data-page="calendar" onclick="navigateTo('calendar')">
         <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
         <span>Calendar</span>
       </div>
-      <div class="nav-item" onclick="navigateTo('trips')">
+      <div class="nav-item" data-page="trips" onclick="navigateTo('trips')">
         <svg class="nav-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
         <span>Trips</span>
       </div>
-      <div class="nav-item" onclick="navigateTo('sport')">
+      <div class="nav-item" data-page="sport" onclick="navigateTo('sport')">
         <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
         <span>Sport</span>
       </div>
-      <div class="nav-item" onclick="navigateTo('tasks')">
+      <div class="nav-item" data-page="tasks" onclick="navigateTo('tasks')">
         <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
         <span>Tasks</span>
       </div>
-      <div class="nav-item" onclick="navigateTo('health')">
+      <div class="nav-item" data-page="health" onclick="navigateTo('health')">
         <svg class="nav-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
         <span>Health</span>
       </div>
@@ -1751,13 +1800,18 @@
   <script>
     // Sample events data
     var eventsData = [
-      { id: 1, title: "State Team Training", date: "2026-01-29", time: "10:00", category: "sport", recurring: "weekly", location: "KGV Oval" },
-      { id: 2, title: "Japan Planning Meeting", date: "2026-01-30", time: "19:00", category: "travel", recurring: false, location: "Home" },
-      { id: 3, title: "Darcy Basketball", date: "2026-01-31", time: "16:00", category: "sport", recurring: false, location: "School Gym" },
-      { id: 4, title: "Family Dinner", date: "2026-02-01", time: "18:30", category: "family", recurring: false, location: "Salamanca" },
-      { id: 5, title: "Finn's Match Day", date: "2026-02-02", time: "14:00", category: "sport", recurring: false, location: "Glenorchy" },
-      { id: 6, title: "School Term Starts", date: "2026-02-03", time: "08:30", category: "school", recurring: false, location: "St Virgil's" },
-      { id: 7, title: "Health Checkup", date: "2026-02-04", time: "09:00", category: "health", recurring: false, location: "Medical Centre" }
+      { id: 1, title: "⚽ State Team Training", date: "2026-01-12", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
+      { id: 2, title: "⚽ Glenorchy Knights vs Kingborough Lions", date: "2026-01-18", time: "14:00", category: "sport", recurring: false, location: "KGV Oval", participant: "Finn", sport: "Soccer" },
+      { id: 3, title: "⚽ State Team Training", date: "2026-01-26", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
+      { id: 4, title: "⚽ State Team Training", date: "2026-01-29", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
+      { id: 5, title: "Japan Planning Meeting", date: "2026-01-30", time: "19:00", category: "travel", recurring: false, location: "Home" },
+      { id: 6, title: "🏀 Darcy Basketball", date: "2026-01-31", time: "16:00 - 17:30", category: "sport", recurring: false, location: "School Gym", participant: "Darcy", sport: "Basketball" },
+      { id: 7, title: "Family Dinner", date: "2026-02-01", time: "18:30", category: "family", recurring: false, location: "Salamanca" },
+      { id: 8, title: "⚽ Finn's Match Day", date: "2026-02-02", time: "14:00", category: "sport", recurring: false, location: "Glenorchy", participant: "Finn", sport: "Soccer" },
+      { id: 9, title: "School Term Starts", date: "2026-02-03", time: "08:30", category: "school", recurring: false, location: "St Virgil's" },
+      { id: 10, title: "Health Checkup", date: "2026-02-04", time: "09:00", category: "health", recurring: false, location: "Medical Centre" },
+      { id: 11, title: "⚽ Glenorchy Knights Training", date: "2026-02-04", time: "17:30 - 19:00", category: "sport", recurring: "weekly", location: "Glenorchy Soccer Club", participant: "Finn", sport: "Soccer" },
+      { id: 12, title: "⚽ Glenorchy Knights Training", date: "2026-02-06", time: "17:30 - 19:00", category: "sport", recurring: "weekly", location: "Glenorchy Soccer Club", participant: "Finn", sport: "Soccer" }
     ];
 
     function navigateTo(page) {
@@ -1766,19 +1820,22 @@
       for (var i = 0; i < pages.length; i++) {
         pages[i].classList.remove('active');
       }
-      
+
       // Show target page
       var targetPage = document.getElementById('page-' + page);
       if (targetPage) {
         targetPage.classList.add('active');
       }
-      
-      // Update nav items
+
+      // Update bottom nav active state
       var navItems = document.querySelectorAll('.nav-item');
       for (var i = 0; i < navItems.length; i++) {
         navItems[i].classList.remove('active');
+        if (navItems[i].dataset.page === page) {
+          navItems[i].classList.add('active');
+        }
       }
-      
+
       window.scrollTo(0, 0);
     }
 
@@ -1911,18 +1968,20 @@
     function renderEventList() {
       const eventList = document.getElementById('eventList');
       if (!eventList) return;
-      
+
       // Sort events by date
       const sortedEvents = [...eventsData].sort((a, b) => new Date(a.date) - new Date(b.date));
-      
+
       eventList.innerHTML = sortedEvents.map(event => `
         <div class="event-item">
           <div class="event-item-header">
             <div class="event-item-title">${event.title}</div>
             <div class="event-item-time">${event.time || ''}</div>
           </div>
-          <div class="event-item-details">${new Date(event.date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })} • ${event.location}</div>
+          <div class="event-item-details">${new Date(event.date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })}${event.location ? ' • ' + event.location : ''}</div>
           <div class="event-item-meta">
+            ${event.participant ? '<span class="event-badge">👤 ' + event.participant + '</span>' : ''}
+            ${event.sport ? '<span class="event-badge">🏅 ' + event.sport + '</span>' : ''}
             ${event.recurring ? '<span class="event-badge recurring">🔁 Recurring - ' + event.recurring.charAt(0).toUpperCase() + event.recurring.slice(1) + '</span>' : ''}
             <span class="event-badge">${getCategoryIcon(event.category)} ${event.category.charAt(0).toUpperCase() + event.category.slice(1)}</span>
           </div>
@@ -1962,11 +2021,13 @@ X-WR-TIMEZONE:Australia/Sydney
       eventsData.forEach(event => {
         const eventDate = event.date.replace(/-/g, '');
         const eventTime = event.time ? event.time.replace(':', '') + '00' : '000000';
-        
+        const now = new Date();
+        const stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+
         icsContent += `BEGIN:VEVENT
 UID:${event.id}@familyhub.local
-DTSTAMP:${eventDate}T${eventTime}Z
-DTSTART:${eventDate}T${eventTime}Z
+DTSTAMP:${stamp}
+DTSTART;TZID=Australia/Sydney:${eventDate}T${eventTime}
 SUMMARY:${event.title}
 LOCATION:${event.location}
 DESCRIPTION:Category: ${event.category}${event.recurring ? ' | Recurring: ' + event.recurring : ''}
@@ -2052,7 +2113,29 @@ END:VEVENT
     
     function addEvent(e) {
       e.preventDefault();
-      alert('Event added and will sync to your iPhone Calendar! (Demo)');
+      var form = e.target;
+      var inputs = form.querySelectorAll('input, select, textarea');
+      var title = inputs[0].value;
+      var date = inputs[1].value;
+      var time = inputs[2].value;
+      var location = inputs[3].value;
+      var recurring = inputs[4].checked ? form.querySelectorAll('select')[1].value : false;
+      var category = form.querySelectorAll('select')[recurring ? 2 : 1].value;
+
+      var newEvent = {
+        id: eventsData.length + 1,
+        title: getCategoryIcon(category) + ' ' + title,
+        date: date,
+        time: time || '',
+        category: category,
+        recurring: recurring,
+        location: location || ''
+      };
+      eventsData.push(newEvent);
+      renderCalendar();
+      renderUpcomingEvents();
+      alert('Event added to Family Calendar!');
+      form.reset();
       closeModal('eventModal');
     }
     
@@ -2082,7 +2165,47 @@ END:VEVENT
     
     function addSportEntry(e) {
       e.preventDefault();
-      alert('Sport entry added successfully!');
+      var participant = document.getElementById('sportParticipant');
+      var sport = document.getElementById('sportSport');
+      var entryType = document.getElementById('sportType');
+      var startDate = document.getElementById('sportStartDate');
+      var startTime = document.getElementById('sportStartTime');
+      var endDate = document.getElementById('sportEndDate');
+      var endTime = document.getElementById('sportEndTime');
+      var title = document.getElementById('sportTitle');
+      var location = document.getElementById('sportLocation');
+      var addToCal = document.getElementById('sportAddToCalendar');
+      var notes = document.getElementById('sportNotes');
+
+      var sportIcons = { soccer: '⚽', futsal: '⚽', basketball: '🏀', rowing: '🚣', 'table-tennis': '🏓', golf: '⛳' };
+      var sportIcon = sportIcons[sport.value] || '🏅';
+      var participantName = participant.options[participant.selectedIndex].text;
+      var sportName = sport.options[sport.selectedIndex].text;
+      var entryTitle = title.value || (participantName + ' - ' + sportName + ' ' + entryType.options[entryType.selectedIndex].text);
+      var timeRange = startTime.value + (endTime.value ? ' - ' + endTime.value : '');
+
+      if (addToCal && addToCal.checked) {
+        var newEvent = {
+          id: eventsData.length + 1,
+          title: sportIcon + ' ' + entryTitle,
+          date: startDate.value,
+          endDate: endDate.value || null,
+          time: timeRange,
+          category: 'sport',
+          recurring: false,
+          location: location.value || '',
+          participant: participantName,
+          sport: sportName
+        };
+        eventsData.push(newEvent);
+        renderCalendar();
+        renderUpcomingEvents();
+      }
+
+      alert('Sport entry added!' + (addToCal.checked ? ' Also added to Family Calendar.' : ''));
+      e.target.reset();
+      document.getElementById('sportAddToCalendar').checked = true;
+      document.getElementById('matchResult').style.display = 'none';
       closeModal('sportModal');
     }
     
@@ -2095,23 +2218,8 @@ END:VEVENT
     
     function toggleSportFields() {
       var sportType = document.getElementById('sportType').value;
-      var matchTitle = document.getElementById('matchTitle');
-      var trainingTitle = document.getElementById('trainingTitle');
       var matchResult = document.getElementById('matchResult');
-      
-      if (sportType === 'match') {
-        matchTitle.style.display = 'block';
-        trainingTitle.style.display = 'none';
-        matchResult.style.display = 'block';
-      } else if (sportType === 'training') {
-        matchTitle.style.display = 'none';
-        trainingTitle.style.display = 'block';
-        matchResult.style.display = 'none';
-      } else {
-        matchTitle.style.display = 'none';
-        trainingTitle.style.display = 'none';
-        matchResult.style.display = 'none';
-      }
+      matchResult.style.display = (sportType === 'match') ? 'block' : 'none';
     }
     
     function filterHealth(person) {
@@ -2122,10 +2230,10 @@ END:VEVENT
 
     // Photos page functions
     function filterPhotos(year) {
-      var photos = document.querySelectorAll('.photo-item');
+      var photos = document.querySelectorAll('.photo-card');
       for (var i = 0; i < photos.length; i++) {
         if (year === 'all' || photos[i].dataset.year === year) {
-          photos[i].style.display = 'block';
+          photos[i].style.display = '';
         } else {
           photos[i].style.display = 'none';
         }
@@ -2133,21 +2241,19 @@ END:VEVENT
     }
 
     // Trips page functions
-    function showTrip(tripId) {
-      var trips = document.querySelectorAll('.trip-content');
-      for (var i = 0; i < trips.length; i++) {
-        trips[i].classList.remove('active');
+    function showTrip(tripId, e) {
+      // Update sidebar active state
+      var items = document.querySelectorAll('.trip-item');
+      for (var i = 0; i < items.length; i++) {
+        items[i].classList.remove('active');
       }
-      document.getElementById('trip-' + tripId).classList.add('active');
-      
-      var buttons = document.querySelectorAll('.trip-btn');
-      for (var i = 0; i < buttons.length; i++) {
-        buttons[i].classList.remove('active');
+      var evt = e || window.event;
+      if (evt && evt.currentTarget) {
+        evt.currentTarget.classList.add('active');
       }
-      event.currentTarget.classList.add('active');
     }
 
-    function showTripTab(tabName) {
+    function showTripTab(tabName, e) {
       var tabs = document.querySelectorAll('.trip-tab');
       for (var i = 0; i < tabs.length; i++) {
         tabs[i].classList.remove('active');
@@ -2156,9 +2262,15 @@ END:VEVENT
       for (var i = 0; i < contents.length; i++) {
         contents[i].classList.remove('active');
       }
-      
-      event.currentTarget.classList.add('active');
-      document.getElementById('trip-tab-' + tabName).classList.add('active');
+
+      var evt = e || window.event;
+      if (evt && evt.currentTarget) {
+        evt.currentTarget.classList.add('active');
+      }
+      var tabEl = document.getElementById('trip-' + tabName);
+      if (tabEl) {
+        tabEl.classList.add('active');
+      }
     }
 
     // Tasks page functions
@@ -2180,26 +2292,24 @@ END:VEVENT
       taskElement.classList.toggle('completed');
       var checkbox = taskElement.querySelector('.task-checkbox');
       if (checkbox) {
-        checkbox.classList.toggle('checked');
+        if (taskElement.classList.contains('completed')) {
+          checkbox.textContent = '\u2713';
+        } else {
+          checkbox.textContent = '';
+        }
       }
     }
 
     // Timeline page functions
-    function filterTimeline(category) {
+    function filterTimeline(category, e) {
       var items = document.querySelectorAll('.timeline-item');
       for (var i = 0; i < items.length; i++) {
         if (category === 'all' || items[i].dataset.category === category) {
-          items[i].style.display = 'flex';
+          items[i].style.display = '';
         } else {
           items[i].style.display = 'none';
         }
       }
-      
-      var buttons = document.querySelectorAll('.filter-btn');
-      for (var i = 0; i < buttons.length; i++) {
-        buttons[i].classList.remove('active');
-      }
-      event.currentTarget.classList.add('active');
     }
 
 
