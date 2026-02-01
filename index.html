@@ -1832,9 +1832,35 @@
   </nav>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script>
     // =====================================================
-    // AUTHENTICATION
+    // FIREBASE CONFIGURATION
+    // =====================================================
+    // SETUP: Replace these values with your Firebase project config.
+    // See instructions at the bottom of this file or in the README.
+    var firebaseConfig = {
+      apiKey: "",
+      authDomain: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: ""
+    };
+
+    var FIREBASE_ENABLED = false;
+    var db = null;
+    if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+      try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        FIREBASE_ENABLED = true;
+      } catch(e) { console.warn('Firebase init failed:', e); }
+    }
+
+    // =====================================================
+    // AUTHENTICATION (PIN stored in Firestore when available)
     // =====================================================
     async function hashPin(pin) {
       var enc = new TextEncoder().encode(pin + 'familyhub');
@@ -1842,15 +1868,23 @@
       return Array.from(new Uint8Array(hash)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
     }
 
-    function checkAuth() {
+    async function checkAuth() {
       var session = sessionStorage.getItem('fh_session');
-      var hasPin = localStorage.getItem('fh_pin');
       var overlay = document.getElementById('loginOverlay');
       if (session === 'active') {
         overlay.classList.add('hidden');
         return;
       }
       overlay.classList.remove('hidden');
+      var hasPin = false;
+      if (FIREBASE_ENABLED) {
+        try {
+          var doc = await db.collection('familyhub').doc('config').get();
+          hasPin = doc.exists && doc.data().pin;
+        } catch(e) { hasPin = !!localStorage.getItem('fh_pin'); }
+      } else {
+        hasPin = !!localStorage.getItem('fh_pin');
+      }
       if (hasPin) {
         document.getElementById('loginTitle').textContent = 'Enter Your PIN';
         document.getElementById('loginSubtitle').textContent = 'Enter your 4-digit PIN to access Family Hub';
@@ -1870,23 +1904,32 @@
         errorEl.textContent = 'Please enter a 4-digit PIN';
         return;
       }
-      var hasPin = localStorage.getItem('fh_pin');
-      if (!hasPin) {
-        var hashed = await hashPin(pin);
+      var hashed = await hashPin(pin);
+      var storedPin = null;
+      if (FIREBASE_ENABLED) {
+        try {
+          var doc = await db.collection('familyhub').doc('config').get();
+          storedPin = (doc.exists && doc.data().pin) ? doc.data().pin : null;
+        } catch(e) { storedPin = localStorage.getItem('fh_pin'); }
+      } else {
+        storedPin = localStorage.getItem('fh_pin');
+      }
+      if (!storedPin) {
+        // First time — set PIN
         localStorage.setItem('fh_pin', hashed);
+        if (FIREBASE_ENABLED) {
+          try { await db.collection('familyhub').doc('config').set({ pin: hashed }); } catch(e) {}
+        }
+        sessionStorage.setItem('fh_session', 'active');
+        document.getElementById('loginOverlay').classList.add('hidden');
+        errorEl.textContent = '';
+      } else if (hashed === storedPin) {
         sessionStorage.setItem('fh_session', 'active');
         document.getElementById('loginOverlay').classList.add('hidden');
         errorEl.textContent = '';
       } else {
-        var hashed = await hashPin(pin);
-        if (hashed === hasPin) {
-          sessionStorage.setItem('fh_session', 'active');
-          document.getElementById('loginOverlay').classList.add('hidden');
-          errorEl.textContent = '';
-        } else {
-          errorEl.textContent = 'Incorrect PIN. Please try again.';
-          document.getElementById('pinInput').value = '';
-        }
+        errorEl.textContent = 'Incorrect PIN. Please try again.';
+        document.getElementById('pinInput').value = '';
       }
     }
 
@@ -1898,47 +1941,80 @@
     }
 
     // =====================================================
-    // DATA STORE (localStorage persistence)
+    // DATA STORE (Firestore + localStorage cache)
     // =====================================================
     var Store = {
+      _cache: {},
+      _ready: false,
+
       get: function(key) {
-        var data = localStorage.getItem('fh_' + key);
-        return data ? JSON.parse(data) : null;
+        if (this._cache[key] !== undefined) return this._cache[key];
+        var local = localStorage.getItem('fh_' + key);
+        if (local) { try { this._cache[key] = JSON.parse(local); return this._cache[key]; } catch(e) {} }
+        return null;
       },
+
       set: function(key, data) {
+        this._cache[key] = data;
         localStorage.setItem('fh_' + key, JSON.stringify(data));
+        if (FIREBASE_ENABLED && db) {
+          db.collection('familyhub').doc(key).set({ data: data }).catch(function(e) { console.warn('Firestore write failed:', e); });
+        }
       },
+
       getNextId: function(key) {
         var data = this.get(key);
         if (!data || !Array.isArray(data)) return 1;
         var maxId = 0;
-        for (var i = 0; i < data.length; i++) {
-          if (data[i].id > maxId) maxId = data[i].id;
-        }
+        for (var i = 0; i < data.length; i++) { if (data[i].id > maxId) maxId = data[i].id; }
         return maxId + 1;
+      },
+
+      // Set up real-time Firestore listeners
+      initListeners: function() {
+        if (!FIREBASE_ENABLED || !db) return;
+        var self = this;
+        var renderMap = {
+          events: function() { renderCalendar(); renderUpcomingEvents(); },
+          tasks: function() { renderTasks(); },
+          health: function() { renderHealthRecords(); },
+          sport_entries: function() { renderSportEntries(); },
+          photos: function() { renderPhotos(); },
+          memories: function() { renderMemories(); }
+        };
+        var keys = Object.keys(renderMap);
+        keys.forEach(function(key) {
+          db.collection('familyhub').doc(key).onSnapshot(function(doc) {
+            if (doc.exists && doc.data().data !== undefined) {
+              self._cache[key] = doc.data().data;
+              localStorage.setItem('fh_' + key, JSON.stringify(doc.data().data));
+              if (self._ready && renderMap[key]) renderMap[key]();
+            }
+          }, function(err) { console.warn('Listener error for ' + key + ':', err); });
+        });
       }
     };
 
-    // Seed default data on first load
-    function seedDefaultData() {
-      if (!Store.get('events')) {
-        Store.set('events', [
-          { id: 1, title: "⚽ State Team Training", date: "2026-01-12", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
-          { id: 2, title: "⚽ Glenorchy Knights vs Kingborough Lions", date: "2026-01-18", time: "14:00", category: "sport", recurring: false, location: "KGV Oval", participant: "Finn", sport: "Soccer" },
-          { id: 3, title: "⚽ State Team Training", date: "2026-01-26", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
-          { id: 4, title: "⚽ State Team Training", date: "2026-01-29", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
+    // =====================================================
+    // SEED DEFAULT DATA (only if no data exists yet)
+    // =====================================================
+    function seedDefaultData(callback) {
+      var defaults = {
+        events: [
+          { id: 1, title: "\u26bd State Team Training", date: "2026-01-12", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
+          { id: 2, title: "\u26bd Glenorchy Knights vs Kingborough Lions", date: "2026-01-18", time: "14:00", category: "sport", recurring: false, location: "KGV Oval", participant: "Finn", sport: "Soccer" },
+          { id: 3, title: "\u26bd State Team Training", date: "2026-01-26", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
+          { id: 4, title: "\u26bd State Team Training", date: "2026-01-29", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
           { id: 5, title: "Japan Planning Meeting", date: "2026-01-30", time: "19:00", category: "travel", recurring: false, location: "Home" },
-          { id: 6, title: "🏀 Darcy Basketball", date: "2026-01-31", time: "16:00 - 17:30", category: "sport", recurring: false, location: "School Gym", participant: "Darcy", sport: "Basketball" },
+          { id: 6, title: "\ud83c\udfc0 Darcy Basketball", date: "2026-01-31", time: "16:00 - 17:30", category: "sport", recurring: false, location: "School Gym", participant: "Darcy", sport: "Basketball" },
           { id: 7, title: "Family Dinner", date: "2026-02-01", time: "18:30", category: "family", recurring: false, location: "Salamanca" },
-          { id: 8, title: "⚽ Finn's Match Day", date: "2026-02-02", time: "14:00", category: "sport", recurring: false, location: "Glenorchy", participant: "Finn", sport: "Soccer" },
+          { id: 8, title: "\u26bd Finn's Match Day", date: "2026-02-02", time: "14:00", category: "sport", recurring: false, location: "Glenorchy", participant: "Finn", sport: "Soccer" },
           { id: 9, title: "School Term Starts", date: "2026-02-03", time: "08:30", category: "school", recurring: false, location: "St Virgil's" },
           { id: 10, title: "Health Checkup", date: "2026-02-04", time: "09:00", category: "health", recurring: false, location: "Medical Centre" },
-          { id: 11, title: "⚽ Glenorchy Knights Training", date: "2026-02-04", time: "17:30 - 19:00", category: "sport", recurring: "weekly", location: "Glenorchy Soccer Club", participant: "Finn", sport: "Soccer" },
-          { id: 12, title: "⚽ Glenorchy Knights Training", date: "2026-02-06", time: "17:30 - 19:00", category: "sport", recurring: "weekly", location: "Glenorchy Soccer Club", participant: "Finn", sport: "Soccer" }
-        ]);
-      }
-      if (!Store.get('tasks')) {
-        Store.set('tasks', {
+          { id: 11, title: "\u26bd Glenorchy Knights Training", date: "2026-02-04", time: "17:30 - 19:00", category: "sport", recurring: "weekly", location: "Glenorchy Soccer Club", participant: "Finn", sport: "Soccer" },
+          { id: 12, title: "\u26bd Glenorchy Knights Training", date: "2026-02-06", time: "17:30 - 19:00", category: "sport", recurring: "weekly", location: "Glenorchy Soccer Club", participant: "Finn", sport: "Soccer" }
+        ],
+        tasks: {
           family: [
             { id: 1, text: "Finalize Japan accommodation bookings", completed: false },
             { id: 2, text: "Book Mt Fuji day tour", completed: false },
@@ -1962,24 +2038,18 @@
             { id: 5, text: "Pay team fees for this term", completed: true },
             { id: 6, text: "Submit State Team medical forms", completed: true }
           ]
-        });
-      }
-      if (!Store.get('health')) {
-        Store.set('health', [
+        },
+        health: [
           { id: 1, person: "finn", name: "Finn", date: "15/01/2026", detail: "Annual sports physical - cleared for all activities", attachments: [{ name: "Physical Report.pdf" }, { name: "Clearance Form.pdf" }] },
           { id: 2, person: "darcy", name: "Darcy", date: "08/01/2026", detail: "Eye test - new prescription, glasses ordered", attachments: [{ name: "Prescription.pdf" }, { name: "Vision Test Results" }] },
           { id: 3, person: "evan", name: "Evan", date: "20/12/2025", detail: "Annual checkup - all clear, continue current fitness routine", attachments: [{ name: "Blood Work Results.pdf" }] }
-        ]);
-      }
-      if (!Store.get('sport_entries')) {
-        Store.set('sport_entries', [
-          { id: 1, title: "State Team Training Session", date: "2026-01-26", time: "10:00am", type: "training", participant: "Finn", sport: "soccer", notes: "Regular Sunday morning training session with Tasmania State Team at KGV Oval. Focused on passing drills, set pieces, and small-sided games. Coach praised Finn's positioning and teamwork throughout the session.", result: "Excellent effort and attitude. Continuing to improve ball control and spatial awareness. Working well with teammates on combination play." },
-          { id: 2, title: "Glenorchy Knights vs Kingborough Lions SC", date: "2026-01-18", time: "2:00pm", type: "match", participant: "Finn", sport: "soccer", notes: "NPL Tasmania U16 league match at KGV Oval. Finn started as attacking midfielder and played 75 minutes before being substituted. Excellent performance with goal and assist.", result: "Glenorchy Knights 3 - 1 Kingborough Lions" },
-          { id: 3, title: "State Team Training Session", date: "2026-01-12", time: "10:00am", type: "training", participant: "Finn", sport: "soccer", notes: "First training session of 2026 with the State Team. Focus on fitness and conditioning after the break. Technical drills working on first touch and passing under pressure.", result: "Good return to training. Fitness levels maintained over break. Ready for upcoming match schedule." }
-        ]);
-      }
-      if (!Store.get('photos')) {
-        Store.set('photos', [
+        ],
+        sport_entries: [
+          { id: 1, title: "State Team Training Session", date: "2026-01-26", time: "10:00am", type: "training", participant: "Finn", sport: "soccer", notes: "Regular Sunday morning training session with Tasmania State Team at KGV Oval. Focused on passing drills, set pieces, and small-sided games.", result: "Excellent effort and attitude. Continuing to improve ball control and spatial awareness." },
+          { id: 2, title: "Glenorchy Knights vs Kingborough Lions SC", date: "2026-01-18", time: "2:00pm", type: "match", participant: "Finn", sport: "soccer", notes: "NPL Tasmania U16 league match at KGV Oval. Finn started as attacking midfielder and played 75 minutes.", result: "Glenorchy Knights 3 - 1 Kingborough Lions" },
+          { id: 3, title: "State Team Training Session", date: "2026-01-12", time: "10:00am", type: "training", participant: "Finn", sport: "soccer", notes: "First training session of 2026 with the State Team. Focus on fitness and conditioning after the break.", result: "Good return to training. Fitness levels maintained over break." }
+        ],
+        photos: [
           { id: 1, title: "Christmas 2025", date: "Dec 25", year: "2025" },
           { id: 2, title: "Finn's Match Win", date: "Jan 18", year: "2026" },
           { id: 3, title: "Family Dinner", date: "Nov 20", year: "2025" },
@@ -1988,19 +2058,35 @@
           { id: 6, title: "School Event", date: "Dec 10", year: "2025" },
           { id: 7, title: "Soccer Finals", date: "Nov 5", year: "2025" },
           { id: 8, title: "New Year 2026", date: "Jan 1", year: "2026" }
-        ]);
-      }
-      if (!Store.get('memories')) {
-        Store.set('memories', [
-          { id: 1, date: "January 2026", title: "Website Launch", text: "Successfully launched our Family Hub website! Now we can keep track of everything in one place. The boys are excited to see photos and track their activities.", hasPhotos: false },
-          { id: 2, date: "December 2025", title: "Family Christmas", text: "Wonderful Christmas celebration with the whole family. Finn and Darcy loved their gifts, and we enjoyed a beautiful day together. Best Christmas yet!", hasPhotos: true },
-          { id: 3, date: "November 2025", title: "Finn Selected for State Team", text: "Incredible news! Finn was selected for the Tasmania State soccer team. So proud of all his hard work and dedication. This is a huge achievement and we celebrated with the whole family.", hasPhotos: false },
-          { id: 4, date: "October 2025", title: "Darcy's Gaming Tournament", text: "Darcy competed in his first major gaming tournament and placed in the top 10. Great achievement! He was nervous at first but performed brilliantly.", hasPhotos: true },
-          { id: 5, date: "September 2025", title: "Weekend at Bruny Island", text: "Perfect family weekend away at Bruny Island. Explored the lighthouse, tried fresh oysters, and enjoyed quality time together away from the city.", hasPhotos: false }
-        ]);
+        ],
+        memories: [
+          { id: 1, date: "January 2026", title: "Website Launch", text: "Successfully launched our Family Hub website! Now we can keep track of everything in one place.", hasPhotos: false },
+          { id: 2, date: "December 2025", title: "Family Christmas", text: "Wonderful Christmas celebration with the whole family. Finn and Darcy loved their gifts.", hasPhotos: true },
+          { id: 3, date: "November 2025", title: "Finn Selected for State Team", text: "Incredible news! Finn was selected for the Tasmania State soccer team.", hasPhotos: false },
+          { id: 4, date: "October 2025", title: "Darcy's Gaming Tournament", text: "Darcy competed in his first major gaming tournament and placed in the top 10.", hasPhotos: true },
+          { id: 5, date: "September 2025", title: "Weekend at Bruny Island", text: "Perfect family weekend away at Bruny Island. Explored the lighthouse, tried fresh oysters.", hasPhotos: false }
+        ]
+      };
+
+      var keys = Object.keys(defaults);
+
+      if (FIREBASE_ENABLED && db) {
+        // Check Firestore first — only seed if empty
+        db.collection('familyhub').doc('events').get().then(function(doc) {
+          if (!doc.exists) {
+            keys.forEach(function(key) { Store.set(key, defaults[key]); });
+          }
+          if (callback) callback();
+        }).catch(function() {
+          // Offline / error — seed localStorage if empty
+          keys.forEach(function(key) { if (!Store.get(key)) Store.set(key, defaults[key]); });
+          if (callback) callback();
+        });
+      } else {
+        keys.forEach(function(key) { if (!Store.get(key)) Store.set(key, defaults[key]); });
+        if (callback) callback();
       }
     }
-    seedDefaultData();
 
     // =====================================================
     // NAVIGATION
@@ -2071,7 +2157,6 @@
       if (!html) html = '<div style="padding: 2rem; text-align: center; color: #6b7280;">No events in the next 7 days</div>';
       container.innerHTML = html;
     }
-    renderUpcomingEvents();
 
     // =====================================================
     // CALENDAR
@@ -2164,7 +2249,6 @@
       currentDate.setMonth(currentDate.getMonth() + delta);
       renderCalendar();
     }
-    renderCalendar();
 
     // =====================================================
     // EXPORT CALENDAR
@@ -2370,8 +2454,6 @@
         container.innerHTML = html;
       }
     }
-    // Initial render of tasks
-    renderTasks();
 
     // =====================================================
     // FORM HANDLERS
@@ -2692,6 +2774,16 @@
     // =====================================================
     // INITIALIZATION
     // =====================================================
+    function renderAll() {
+      renderCalendar();
+      renderUpcomingEvents();
+      renderHealthRecords();
+      renderSportEntries();
+      renderPhotos();
+      renderMemories();
+      renderTasks();
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       // Recurring checkbox toggle
       var recurringCheckbox = document.getElementById('recurringEvent');
@@ -2701,13 +2793,16 @@
           recurringOptions.style.display = this.checked ? 'block' : 'none';
         });
       }
-      // Check auth on load
+
+      // Check auth
       checkAuth();
-      // Initial renders
-      renderHealthRecords();
-      renderSportEntries();
-      renderPhotos();
-      renderMemories();
+
+      // Seed data then start listeners and render
+      seedDefaultData(function() {
+        Store.initListeners();
+        Store._ready = true;
+        renderAll();
+      });
     });
   </script>
 </body>
