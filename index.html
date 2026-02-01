@@ -282,6 +282,26 @@
     .memory-photos { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
     .memory-photo { width: 60px; height: 60px; background: var(--bg-lighter); border: 1px solid var(--border); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
 
+    /* Login Screen */
+    .login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-white); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+    .login-overlay.hidden { display: none; }
+    .login-card { text-align: center; padding: 3rem 2rem; max-width: 400px; width: 100%; }
+    .login-card .logo-image { height: 120px; margin-bottom: 2rem; }
+    .login-title { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.5rem; }
+    .login-subtitle { color: var(--text-medium); font-size: 0.95rem; margin-bottom: 2rem; }
+    .pin-input { width: 200px; text-align: center; font-size: 2rem; letter-spacing: 0.75rem; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 8px; font-family: var(--font-body); outline: none; transition: border-color 0.2s; }
+    .pin-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    .login-btn { margin-top: 1.5rem; width: 200px; }
+    .login-error { color: #ef4444; font-size: 0.85rem; margin-top: 0.75rem; min-height: 1.25rem; }
+
+    /* Delete & Danger Buttons */
+    .btn-danger { background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-family: var(--font-body); font-size: 0.85rem; transition: all 0.2s ease; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-logout { background: none; border: 1px solid var(--border); color: var(--text-medium); padding: 0.35rem 0.75rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: var(--font-body); transition: all 0.2s ease; margin-left: 1rem; }
+    .btn-logout:hover { border-color: #ef4444; color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+    .delete-btn { background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 1.1rem; padding: 0.25rem 0.5rem; border-radius: 4px; transition: all 0.2s ease; line-height: 1; }
+    .delete-btn:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+
     @media (max-width: 968px) {
       .trips-layout { grid-template-columns: 1fr; }
       .trips-sidebar { border-right: none; border-bottom: 1px solid var(--border); padding-right: 0; padding-bottom: 1.5rem; }
@@ -301,11 +321,26 @@
   </style>
 </head>
 <body>
+  <!-- Login Overlay -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <img class="logo-image" src="Family Hub with sports and family icons.png" alt="Family Hub">
+      <h2 class="login-title" id="loginTitle">Set Your PIN</h2>
+      <p class="login-subtitle" id="loginSubtitle">Choose a 4-digit PIN to secure your Family Hub</p>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <input type="password" id="pinInput" class="pin-input" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="----" required autocomplete="off">
+        <div class="login-error" id="loginError"></div>
+        <button type="submit" class="btn login-btn" id="loginBtn">Set PIN</button>
+      </form>
+    </div>
+  </div>
+
   <header class="header">
     <div class="header-content">
       <div class="logo-container">
         <img class="logo-image" onclick="navigateTo('home')" src="Family Hub with sports and family icons.png" alt="Family Hub">
       </div>
+      <button class="btn-logout" onclick="logout()">Logout</button>
     </div>
   </header>
 
@@ -516,7 +551,7 @@
             <option value="darcy">Darcy</option>
           </select>
         </div>
-        <div class="health-grid">
+        <div class="health-grid" id="healthGrid">
           <div class="health-record" data-person="finn">
             <div class="health-header">
               <span class="health-name">Finn</span>
@@ -904,7 +939,7 @@
             <button class="btn btn-small" onclick="openModal('photoModal')">Upload Photos</button>
           </div>
         </div>
-        <div class="photo-grid">
+        <div class="photo-grid" id="photoGrid">
           <div class="photo-card" data-year="2025">
             <div class="photo-placeholder">📷</div>
             <div class="photo-info">Christmas 2025<br><span style="font-size: 0.75rem; opacity: 0.8;">Dec 25</span></div>
@@ -953,7 +988,7 @@
           <h2 class="card-title">Timeline of Memories</h2>
           <button class="btn btn-small" onclick="openModal('memoryModal')">Add Memory</button>
         </div>
-        <div class="memory-timeline">
+        <div class="memory-timeline" id="memoryTimeline">
           <div class="memory-item">
             <div class="memory-date">January 2026</div>
             <div class="memory-content">
@@ -1384,7 +1419,7 @@
           <h2 class="card-title">Recent Matches & Training</h2>
           <button class="btn btn-small" onclick="openModal('sportModal')">Add Entry</button>
         </div>
-        <div class="sport-entries">
+        <div class="sport-entries" id="sportEntriesList">
           <div class="sport-entry">
             <div class="sport-entry-header">
               <div>
@@ -1572,7 +1607,7 @@
         
         <!-- Family Tasks -->
         <div id="task-family" class="task-content active">
-          <div class="task-list">
+          <div class="task-list" id="taskList-family">
             <div class="task-item" onclick="toggleTask(this)">
               <div class="task-checkbox"></div>
               <div class="task-text">Finalize Japan accommodation bookings</div>
@@ -1602,7 +1637,7 @@
         
         <!-- School Tasks -->
         <div id="task-school" class="task-content">
-          <div class="task-list">
+          <div class="task-list" id="taskList-school">
             <div class="task-item" onclick="toggleTask(this)">
               <div class="task-checkbox"></div>
               <div class="task-text">Buy school supplies for Term 1</div>
@@ -1628,7 +1663,7 @@
         
         <!-- Sport Tasks -->
         <div id="task-sport" class="task-content">
-          <div class="task-list">
+          <div class="task-list" id="taskList-sport">
             <div class="task-item" onclick="toggleTask(this)">
               <div class="task-checkbox"></div>
               <div class="task-text">Wash Finn's soccer kits</div>
@@ -1798,319 +1833,549 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // Sample events data
-    var eventsData = [
-      { id: 1, title: "⚽ State Team Training", date: "2026-01-12", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
-      { id: 2, title: "⚽ Glenorchy Knights vs Kingborough Lions", date: "2026-01-18", time: "14:00", category: "sport", recurring: false, location: "KGV Oval", participant: "Finn", sport: "Soccer" },
-      { id: 3, title: "⚽ State Team Training", date: "2026-01-26", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
-      { id: 4, title: "⚽ State Team Training", date: "2026-01-29", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
-      { id: 5, title: "Japan Planning Meeting", date: "2026-01-30", time: "19:00", category: "travel", recurring: false, location: "Home" },
-      { id: 6, title: "🏀 Darcy Basketball", date: "2026-01-31", time: "16:00 - 17:30", category: "sport", recurring: false, location: "School Gym", participant: "Darcy", sport: "Basketball" },
-      { id: 7, title: "Family Dinner", date: "2026-02-01", time: "18:30", category: "family", recurring: false, location: "Salamanca" },
-      { id: 8, title: "⚽ Finn's Match Day", date: "2026-02-02", time: "14:00", category: "sport", recurring: false, location: "Glenorchy", participant: "Finn", sport: "Soccer" },
-      { id: 9, title: "School Term Starts", date: "2026-02-03", time: "08:30", category: "school", recurring: false, location: "St Virgil's" },
-      { id: 10, title: "Health Checkup", date: "2026-02-04", time: "09:00", category: "health", recurring: false, location: "Medical Centre" },
-      { id: 11, title: "⚽ Glenorchy Knights Training", date: "2026-02-04", time: "17:30 - 19:00", category: "sport", recurring: "weekly", location: "Glenorchy Soccer Club", participant: "Finn", sport: "Soccer" },
-      { id: 12, title: "⚽ Glenorchy Knights Training", date: "2026-02-06", time: "17:30 - 19:00", category: "sport", recurring: "weekly", location: "Glenorchy Soccer Club", participant: "Finn", sport: "Soccer" }
-    ];
+    // =====================================================
+    // AUTHENTICATION
+    // =====================================================
+    async function hashPin(pin) {
+      var enc = new TextEncoder().encode(pin + 'familyhub');
+      var hash = await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(hash)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+    }
 
+    function checkAuth() {
+      var session = sessionStorage.getItem('fh_session');
+      var hasPin = localStorage.getItem('fh_pin');
+      var overlay = document.getElementById('loginOverlay');
+      if (session === 'active') {
+        overlay.classList.add('hidden');
+        return;
+      }
+      overlay.classList.remove('hidden');
+      if (hasPin) {
+        document.getElementById('loginTitle').textContent = 'Enter Your PIN';
+        document.getElementById('loginSubtitle').textContent = 'Enter your 4-digit PIN to access Family Hub';
+        document.getElementById('loginBtn').textContent = 'Login';
+      } else {
+        document.getElementById('loginTitle').textContent = 'Set Your PIN';
+        document.getElementById('loginSubtitle').textContent = 'Choose a 4-digit PIN to secure your Family Hub';
+        document.getElementById('loginBtn').textContent = 'Set PIN';
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      var pin = document.getElementById('pinInput').value;
+      var errorEl = document.getElementById('loginError');
+      if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+        errorEl.textContent = 'Please enter a 4-digit PIN';
+        return;
+      }
+      var hasPin = localStorage.getItem('fh_pin');
+      if (!hasPin) {
+        var hashed = await hashPin(pin);
+        localStorage.setItem('fh_pin', hashed);
+        sessionStorage.setItem('fh_session', 'active');
+        document.getElementById('loginOverlay').classList.add('hidden');
+        errorEl.textContent = '';
+      } else {
+        var hashed = await hashPin(pin);
+        if (hashed === hasPin) {
+          sessionStorage.setItem('fh_session', 'active');
+          document.getElementById('loginOverlay').classList.add('hidden');
+          errorEl.textContent = '';
+        } else {
+          errorEl.textContent = 'Incorrect PIN. Please try again.';
+          document.getElementById('pinInput').value = '';
+        }
+      }
+    }
+
+    function logout() {
+      sessionStorage.removeItem('fh_session');
+      document.getElementById('pinInput').value = '';
+      document.getElementById('loginError').textContent = '';
+      checkAuth();
+    }
+
+    // =====================================================
+    // DATA STORE (localStorage persistence)
+    // =====================================================
+    var Store = {
+      get: function(key) {
+        var data = localStorage.getItem('fh_' + key);
+        return data ? JSON.parse(data) : null;
+      },
+      set: function(key, data) {
+        localStorage.setItem('fh_' + key, JSON.stringify(data));
+      },
+      getNextId: function(key) {
+        var data = this.get(key);
+        if (!data || !Array.isArray(data)) return 1;
+        var maxId = 0;
+        for (var i = 0; i < data.length; i++) {
+          if (data[i].id > maxId) maxId = data[i].id;
+        }
+        return maxId + 1;
+      }
+    };
+
+    // Seed default data on first load
+    function seedDefaultData() {
+      if (!Store.get('events')) {
+        Store.set('events', [
+          { id: 1, title: "⚽ State Team Training", date: "2026-01-12", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
+          { id: 2, title: "⚽ Glenorchy Knights vs Kingborough Lions", date: "2026-01-18", time: "14:00", category: "sport", recurring: false, location: "KGV Oval", participant: "Finn", sport: "Soccer" },
+          { id: 3, title: "⚽ State Team Training", date: "2026-01-26", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
+          { id: 4, title: "⚽ State Team Training", date: "2026-01-29", time: "10:00 - 12:00", category: "sport", recurring: "weekly", location: "KGV Oval", participant: "Finn", sport: "Soccer" },
+          { id: 5, title: "Japan Planning Meeting", date: "2026-01-30", time: "19:00", category: "travel", recurring: false, location: "Home" },
+          { id: 6, title: "🏀 Darcy Basketball", date: "2026-01-31", time: "16:00 - 17:30", category: "sport", recurring: false, location: "School Gym", participant: "Darcy", sport: "Basketball" },
+          { id: 7, title: "Family Dinner", date: "2026-02-01", time: "18:30", category: "family", recurring: false, location: "Salamanca" },
+          { id: 8, title: "⚽ Finn's Match Day", date: "2026-02-02", time: "14:00", category: "sport", recurring: false, location: "Glenorchy", participant: "Finn", sport: "Soccer" },
+          { id: 9, title: "School Term Starts", date: "2026-02-03", time: "08:30", category: "school", recurring: false, location: "St Virgil's" },
+          { id: 10, title: "Health Checkup", date: "2026-02-04", time: "09:00", category: "health", recurring: false, location: "Medical Centre" },
+          { id: 11, title: "⚽ Glenorchy Knights Training", date: "2026-02-04", time: "17:30 - 19:00", category: "sport", recurring: "weekly", location: "Glenorchy Soccer Club", participant: "Finn", sport: "Soccer" },
+          { id: 12, title: "⚽ Glenorchy Knights Training", date: "2026-02-06", time: "17:30 - 19:00", category: "sport", recurring: "weekly", location: "Glenorchy Soccer Club", participant: "Finn", sport: "Soccer" }
+        ]);
+      }
+      if (!Store.get('tasks')) {
+        Store.set('tasks', {
+          family: [
+            { id: 1, text: "Finalize Japan accommodation bookings", completed: false },
+            { id: 2, text: "Book Mt Fuji day tour", completed: false },
+            { id: 3, text: "Organize family photos from December", completed: false },
+            { id: 4, text: "Sort old clothes for donation", completed: false },
+            { id: 5, text: "Plan weekly meal prep", completed: true },
+            { id: 6, text: "Book Disney tickets for Japan", completed: true }
+          ],
+          school: [
+            { id: 1, text: "Buy school supplies for Term 1", completed: false },
+            { id: 2, text: "Complete uniform name tags", completed: false },
+            { id: 3, text: "Sign Term 1 permission forms", completed: false },
+            { id: 4, text: "Register for parent-teacher meetings", completed: true },
+            { id: 5, text: "Pay school fees for 2026", completed: true }
+          ],
+          sport: [
+            { id: 1, text: "Wash Finn's soccer kits", completed: false },
+            { id: 2, text: "Register for upcoming tournament", completed: false },
+            { id: 3, text: "Buy new soccer boots (size 10)", completed: false },
+            { id: 4, text: "Organize carpool for away match", completed: false },
+            { id: 5, text: "Pay team fees for this term", completed: true },
+            { id: 6, text: "Submit State Team medical forms", completed: true }
+          ]
+        });
+      }
+      if (!Store.get('health')) {
+        Store.set('health', [
+          { id: 1, person: "finn", name: "Finn", date: "15/01/2026", detail: "Annual sports physical - cleared for all activities", attachments: [{ name: "Physical Report.pdf" }, { name: "Clearance Form.pdf" }] },
+          { id: 2, person: "darcy", name: "Darcy", date: "08/01/2026", detail: "Eye test - new prescription, glasses ordered", attachments: [{ name: "Prescription.pdf" }, { name: "Vision Test Results" }] },
+          { id: 3, person: "evan", name: "Evan", date: "20/12/2025", detail: "Annual checkup - all clear, continue current fitness routine", attachments: [{ name: "Blood Work Results.pdf" }] }
+        ]);
+      }
+      if (!Store.get('sport_entries')) {
+        Store.set('sport_entries', [
+          { id: 1, title: "State Team Training Session", date: "2026-01-26", time: "10:00am", type: "training", participant: "Finn", sport: "soccer", notes: "Regular Sunday morning training session with Tasmania State Team at KGV Oval. Focused on passing drills, set pieces, and small-sided games. Coach praised Finn's positioning and teamwork throughout the session.", result: "Excellent effort and attitude. Continuing to improve ball control and spatial awareness. Working well with teammates on combination play." },
+          { id: 2, title: "Glenorchy Knights vs Kingborough Lions SC", date: "2026-01-18", time: "2:00pm", type: "match", participant: "Finn", sport: "soccer", notes: "NPL Tasmania U16 league match at KGV Oval. Finn started as attacking midfielder and played 75 minutes before being substituted. Excellent performance with goal and assist.", result: "Glenorchy Knights 3 - 1 Kingborough Lions" },
+          { id: 3, title: "State Team Training Session", date: "2026-01-12", time: "10:00am", type: "training", participant: "Finn", sport: "soccer", notes: "First training session of 2026 with the State Team. Focus on fitness and conditioning after the break. Technical drills working on first touch and passing under pressure.", result: "Good return to training. Fitness levels maintained over break. Ready for upcoming match schedule." }
+        ]);
+      }
+      if (!Store.get('photos')) {
+        Store.set('photos', [
+          { id: 1, title: "Christmas 2025", date: "Dec 25", year: "2025" },
+          { id: 2, title: "Finn's Match Win", date: "Jan 18", year: "2026" },
+          { id: 3, title: "Family Dinner", date: "Nov 20", year: "2025" },
+          { id: 4, title: "Beach Trip", date: "Oct 15", year: "2025" },
+          { id: 5, title: "Birthday Party", date: "Jan 5", year: "2026" },
+          { id: 6, title: "School Event", date: "Dec 10", year: "2025" },
+          { id: 7, title: "Soccer Finals", date: "Nov 5", year: "2025" },
+          { id: 8, title: "New Year 2026", date: "Jan 1", year: "2026" }
+        ]);
+      }
+      if (!Store.get('memories')) {
+        Store.set('memories', [
+          { id: 1, date: "January 2026", title: "Website Launch", text: "Successfully launched our Family Hub website! Now we can keep track of everything in one place. The boys are excited to see photos and track their activities.", hasPhotos: false },
+          { id: 2, date: "December 2025", title: "Family Christmas", text: "Wonderful Christmas celebration with the whole family. Finn and Darcy loved their gifts, and we enjoyed a beautiful day together. Best Christmas yet!", hasPhotos: true },
+          { id: 3, date: "November 2025", title: "Finn Selected for State Team", text: "Incredible news! Finn was selected for the Tasmania State soccer team. So proud of all his hard work and dedication. This is a huge achievement and we celebrated with the whole family.", hasPhotos: false },
+          { id: 4, date: "October 2025", title: "Darcy's Gaming Tournament", text: "Darcy competed in his first major gaming tournament and placed in the top 10. Great achievement! He was nervous at first but performed brilliantly.", hasPhotos: true },
+          { id: 5, date: "September 2025", title: "Weekend at Bruny Island", text: "Perfect family weekend away at Bruny Island. Explored the lighthouse, tried fresh oysters, and enjoyed quality time together away from the city.", hasPhotos: false }
+        ]);
+      }
+    }
+    seedDefaultData();
+
+    // =====================================================
+    // NAVIGATION
+    // =====================================================
     function navigateTo(page) {
-      // Hide all pages
       var pages = document.querySelectorAll('.page');
       for (var i = 0; i < pages.length; i++) {
         pages[i].classList.remove('active');
       }
-
-      // Show target page
       var targetPage = document.getElementById('page-' + page);
-      if (targetPage) {
-        targetPage.classList.add('active');
-      }
+      if (targetPage) targetPage.classList.add('active');
 
-      // Update bottom nav active state
       var navItems = document.querySelectorAll('.nav-item');
       for (var i = 0; i < navItems.length; i++) {
         navItems[i].classList.remove('active');
-        if (navItems[i].dataset.page === page) {
-          navItems[i].classList.add('active');
-        }
+        if (navItems[i].dataset.page === page) navItems[i].classList.add('active');
       }
-
       window.scrollTo(0, 0);
+
+      // Re-render dynamic content when navigating to page
+      if (page === 'health') renderHealthRecords();
+      if (page === 'sport') renderSportEntries();
+      if (page === 'photos') renderPhotos();
+      if (page === 'memories') renderMemories();
+      if (page === 'tasks') renderTasks();
+      if (page === 'calendar') renderCalendar();
     }
 
+    // =====================================================
+    // COUNTDOWN
+    // =====================================================
     function updateCountdown() {
-      const japanDate = new Date('2026-10-01T00:00:00');
-      const now = new Date();
-      const days = Math.floor((japanDate - now) / (1000 * 60 * 60 * 24));
+      var japanDate = new Date('2026-10-01T00:00:00');
+      var now = new Date();
+      var days = Math.floor((japanDate - now) / (1000 * 60 * 60 * 24));
       document.getElementById('daysToJapan').textContent = days;
     }
     setInterval(updateCountdown, 60000);
     updateCountdown();
 
-    // Mini Calendar
-    // Next 7 Days Events
+    // =====================================================
+    // UPCOMING EVENTS (Home page)
+    // =====================================================
     function renderUpcomingEvents() {
       var container = document.getElementById('upcomingEventsHome');
-      if (!container) {
-        console.log('Container not found');
-        return;
-      }
-      
+      if (!container) return;
+      var eventsData = Store.get('events') || [];
       var html = '';
       var today = new Date();
       today.setHours(0, 0, 0, 0);
-      
-      // Get events for next 7 days
+
       for (var i = 0; i < eventsData.length; i++) {
-        var event = eventsData[i];
-        var eventDate = new Date(event.date);
+        var evt = eventsData[i];
+        var eventDate = new Date(evt.date);
         eventDate.setHours(0, 0, 0, 0);
-        
         var daysDiff = Math.floor((eventDate - today) / (1000 * 60 * 60 * 24));
-        
         if (daysDiff >= 0 && daysDiff < 7) {
           var dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
           var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          var dayName = dayNames[eventDate.getDay()];
-          var monthName = monthNames[eventDate.getMonth()];
-          var dayNum = eventDate.getDate();
-          var dateLabel = daysDiff === 0 ? 'TODAY' : dayName + ', ' + monthName + ' ' + dayNum;
-          
-          html += '<div class="upcoming-event ' + event.category + '" onclick="navigateTo(\'calendar\')">';
+          var dateLabel = daysDiff === 0 ? 'TODAY' : dayNames[eventDate.getDay()] + ', ' + monthNames[eventDate.getMonth()] + ' ' + eventDate.getDate();
+          html += '<div class="upcoming-event ' + evt.category + '" onclick="navigateTo(\'calendar\')">';
           html += '<div class="event-date">' + dateLabel + '</div>';
-          if (event.time) {
-            html += '<div class="event-time">🕐 ' + event.time + '</div>';
-          }
-          html += '<div class="event-title">' + event.title + '</div>';
+          if (evt.time) html += '<div class="event-time">' + evt.time + '</div>';
+          html += '<div class="event-title">' + evt.title + '</div>';
           html += '</div>';
         }
       }
-      
-      if (html === '') {
-        html = '<div style="padding: 2rem; text-align: center; color: #6b7280;">No events in the next 7 days</div>';
-      }
-      
+      if (!html) html = '<div style="padding: 2rem; text-align: center; color: #6b7280;">No events in the next 7 days</div>';
       container.innerHTML = html;
-      console.log('Upcoming events rendered');
     }
-    
-    // Call when page loads
     renderUpcomingEvents();
 
-    // Full Calendar with Event Titles
-    let currentDate = new Date();
+    // =====================================================
+    // CALENDAR
+    // =====================================================
+    var currentDate = new Date();
+
     function renderCalendar() {
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-      document.getElementById('currentMonth').textContent = `${monthNames[month]} ${year}`;
-      const firstDay = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const grid = document.getElementById('calendarGrid');
+      var eventsData = Store.get('events') || [];
+      var year = currentDate.getFullYear();
+      var month = currentDate.getMonth();
+      var monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      document.getElementById('currentMonth').textContent = monthNames[month] + ' ' + year;
+      var firstDay = new Date(year, month, 1).getDay();
+      var daysInMonth = new Date(year, month + 1, 0).getDate();
+      var grid = document.getElementById('calendarGrid');
       grid.innerHTML = '';
-      
-      // Day headers
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      dayNames.forEach(day => {
-        const header = document.createElement('div');
+
+      var dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      dayNames.forEach(function(day) {
+        var header = document.createElement('div');
         header.className = 'calendar-day-header';
         header.textContent = day;
         grid.appendChild(header);
       });
-      
-      // Empty cells before first day
-      for (let i = 0; i < firstDay; i++) {
+
+      for (var i = 0; i < firstDay; i++) {
         grid.appendChild(document.createElement('div'));
       }
-      
-      const today = new Date();
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dayEl = document.createElement('div');
+
+      var today = new Date();
+      for (var day = 1; day <= daysInMonth; day++) {
+        var dayEl = document.createElement('div');
         dayEl.className = 'calendar-day';
-        
-        const dayNum = document.createElement('div');
+        var dayNum = document.createElement('div');
         dayNum.className = 'calendar-day-number';
         dayNum.textContent = day;
         dayEl.appendChild(dayNum);
-        
+
         if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
           dayEl.classList.add('today');
         }
-        
-        // Add events for this day
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const dayEvents = eventsData.filter(e => e.date === dateStr);
-        
+
+        var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+        var dayEvents = eventsData.filter(function(e) { return e.date === dateStr; });
+
         if (dayEvents.length > 0) {
           dayEl.classList.add('has-event');
-          const eventsContainer = document.createElement('div');
+          var eventsContainer = document.createElement('div');
           eventsContainer.className = 'calendar-events';
-          
-          dayEvents.forEach(event => {
-            const eventEl = document.createElement('div');
-            eventEl.className = `calendar-event ${event.category}${event.recurring ? ' recurring' : ''}`;
-            eventEl.innerHTML = `${event.time ? `<span class="calendar-event-time">${event.time}</span> ` : ''}${event.title}`;
-            eventEl.title = `${event.title} - ${event.location}`;
+          dayEvents.forEach(function(evt) {
+            var eventEl = document.createElement('div');
+            eventEl.className = 'calendar-event ' + evt.category + (evt.recurring ? ' recurring' : '');
+            eventEl.innerHTML = (evt.time ? '<span class="calendar-event-time">' + evt.time + '</span> ' : '') + evt.title;
+            eventEl.title = evt.title + ' - ' + (evt.location || '');
             eventsContainer.appendChild(eventEl);
           });
-          
           dayEl.appendChild(eventsContainer);
         }
-        
         grid.appendChild(dayEl);
       }
-      
-      // Render event list
       renderEventList();
     }
-    
+
     function renderEventList() {
-      const eventList = document.getElementById('eventList');
+      var eventList = document.getElementById('eventList');
       if (!eventList) return;
+      var eventsData = Store.get('events') || [];
+      var sortedEvents = eventsData.slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
 
-      // Sort events by date
-      const sortedEvents = [...eventsData].sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      eventList.innerHTML = sortedEvents.map(event => `
-        <div class="event-item">
-          <div class="event-item-header">
-            <div class="event-item-title">${event.title}</div>
-            <div class="event-item-time">${event.time || ''}</div>
-          </div>
-          <div class="event-item-details">${new Date(event.date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })}${event.location ? ' • ' + event.location : ''}</div>
-          <div class="event-item-meta">
-            ${event.participant ? '<span class="event-badge">👤 ' + event.participant + '</span>' : ''}
-            ${event.sport ? '<span class="event-badge">🏅 ' + event.sport + '</span>' : ''}
-            ${event.recurring ? '<span class="event-badge recurring">🔁 Recurring - ' + event.recurring.charAt(0).toUpperCase() + event.recurring.slice(1) + '</span>' : ''}
-            <span class="event-badge">${getCategoryIcon(event.category)} ${event.category.charAt(0).toUpperCase() + event.category.slice(1)}</span>
-          </div>
-        </div>
-      `).join('');
+      eventList.innerHTML = sortedEvents.map(function(evt) {
+        return '<div class="event-item" style="position:relative;">' +
+          '<button class="delete-btn" onclick="event.stopPropagation(); deleteEvent(' + evt.id + ')" title="Delete event" style="position:absolute;top:0.75rem;right:0.75rem;">✕</button>' +
+          '<div class="event-item-header"><div class="event-item-title">' + evt.title + '</div><div class="event-item-time">' + (evt.time || '') + '</div></div>' +
+          '<div class="event-item-details">' + new Date(evt.date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }) + (evt.location ? ' &bull; ' + evt.location : '') + '</div>' +
+          '<div class="event-item-meta">' +
+            (evt.participant ? '<span class="event-badge">👤 ' + evt.participant + '</span>' : '') +
+            (evt.sport ? '<span class="event-badge">🏅 ' + evt.sport + '</span>' : '') +
+            (evt.recurring ? '<span class="event-badge recurring">🔁 Recurring - ' + evt.recurring.charAt(0).toUpperCase() + evt.recurring.slice(1) + '</span>' : '') +
+            '<span class="event-badge">' + getCategoryIcon(evt.category) + ' ' + evt.category.charAt(0).toUpperCase() + evt.category.slice(1) + '</span>' +
+          '</div></div>';
+      }).join('');
     }
-    
+
     function getCategoryIcon(category) {
-      const icons = {
-        sport: '⚽',
-        school: '📚',
-        health: '💊',
-        travel: '✈️',
-        family: '👨‍👩‍👦'
-      };
+      var icons = { sport: '⚽', school: '📚', health: '💊', travel: '✈️', family: '👨‍👩‍👦' };
       return icons[category] || '📌';
     }
-    
+
     function changeMonth(delta) {
       currentDate.setMonth(currentDate.getMonth() + delta);
       renderCalendar();
     }
     renderCalendar();
 
-    // Export calendar as .ics file
+    // =====================================================
+    // EXPORT CALENDAR
+    // =====================================================
     function exportCalendar() {
-      let icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Family Hub//EN
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-X-WR-CALNAME:Family Hub Calendar
-X-WR-TIMEZONE:Australia/Sydney
-
-`;
-      
-      eventsData.forEach(event => {
-        const eventDate = event.date.replace(/-/g, '');
-        const eventTime = event.time ? event.time.replace(':', '') + '00' : '000000';
-        const now = new Date();
-        const stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-
-        icsContent += `BEGIN:VEVENT
-UID:${event.id}@familyhub.local
-DTSTAMP:${stamp}
-DTSTART;TZID=Australia/Sydney:${eventDate}T${eventTime}
-SUMMARY:${event.title}
-LOCATION:${event.location}
-DESCRIPTION:Category: ${event.category}${event.recurring ? ' | Recurring: ' + event.recurring : ''}
-STATUS:CONFIRMED
-END:VEVENT
-
-`;
+      var eventsData = Store.get('events') || [];
+      var icsContent = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Family Hub//EN\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\nX-WR-CALNAME:Family Hub Calendar\nX-WR-TIMEZONE:Australia/Sydney\n\n';
+      eventsData.forEach(function(evt) {
+        var eventDate = evt.date.replace(/-/g, '');
+        var eventTime = evt.time ? evt.time.replace(':', '') + '00' : '000000';
+        var stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+        icsContent += 'BEGIN:VEVENT\nUID:' + evt.id + '@familyhub.local\nDTSTAMP:' + stamp + '\nDTSTART;TZID=Australia/Sydney:' + eventDate + 'T' + eventTime + '\nSUMMARY:' + evt.title + '\nLOCATION:' + (evt.location || '') + '\nDESCRIPTION:Category: ' + evt.category + (evt.recurring ? ' | Recurring: ' + evt.recurring : '') + '\nSTATUS:CONFIRMED\nEND:VEVENT\n\n';
       });
-      
       icsContent += 'END:VCALENDAR';
-      
-      // Create download link
-      const blob = new Blob([icsContent], { type: 'text/calendar' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      var blob = new Blob([icsContent], { type: 'text/calendar' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
       a.href = url;
       a.download = 'family-hub-calendar.ics';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
-      alert('Calendar exported! Subscribe to this .ics file in your iPhone Calendar app:\n\nSettings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar\n\nPaste the webcal:// URL when you host this file online.');
+      alert('Calendar exported! Subscribe to this .ics file in your iPhone Calendar app:\n\nSettings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar');
     }
 
-    // World Map
-    let map;
+    // =====================================================
+    // WORLD MAP
+    // =====================================================
+    var map;
     function initMap() {
-      map = L.map('worldMap', {
-        center: [20, 100],
-        zoom: 2,
-        minZoom: 2,
-        maxZoom: 8
-      });
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
-
-      const destinations = [
+      map = L.map('worldMap', { center: [20, 100], zoom: 2, minZoom: 2, maxZoom: 8 });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
+      var destinations = [
         { name: 'Japan 2026', coords: [35.6762, 139.6503], status: 'upcoming', dates: '1-13 Oct 2026' },
         { name: 'Melbourne', coords: [-37.8136, 144.9631], status: 'upcoming', dates: '15-17 Mar 2026' },
         { name: 'Tasmania', coords: [-42.8821, 147.3272], status: 'visited', dates: 'Dec 2025' },
         { name: 'Sydney', coords: [-33.8688, 151.2093], status: 'visited', dates: 'Nov 2025' }
       ];
-
-      destinations.forEach(dest => {
-        const color = dest.status === 'upcoming' ? '#2563eb' : '#10b981';
-        const icon = L.divIcon({
+      destinations.forEach(function(dest) {
+        var color = dest.status === 'upcoming' ? '#2563eb' : '#10b981';
+        var icon = L.divIcon({
           className: 'custom-marker',
-          html: `<div style="background: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+          html: '<div style="background: ' + color + '; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
           iconSize: [24, 24]
         });
-
-        L.marker(dest.coords, { icon: icon })
-          .addTo(map)
-          .bindPopup(`
-            <div class="popup-title">${dest.name}</div>
-            <div style="font-size: 0.85rem; color: var(--text-medium);">${dest.dates}</div>
-            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: ${color}; font-weight: 600;">
-              ${dest.status === 'upcoming' ? '📍 Upcoming' : '✓ Visited'}
-            </div>
-          `);
+        L.marker(dest.coords, { icon: icon }).addTo(map).bindPopup(
+          '<div class="popup-title">' + dest.name + '</div>' +
+          '<div style="font-size:0.85rem;color:var(--text-medium);">' + dest.dates + '</div>' +
+          '<div style="margin-top:0.5rem;font-size:0.8rem;color:' + color + ';font-weight:600;">' + (dest.status === 'upcoming' ? '📍 Upcoming' : '✓ Visited') + '</div>'
+        );
       });
     }
     setTimeout(function() {
-      if (typeof L !== 'undefined') {
-        initMap();
-      } else {
-        console.log('Leaflet not loaded, retrying...');
-        setTimeout(initMap, 500);
-      }
+      if (typeof L !== 'undefined') initMap();
+      else setTimeout(initMap, 500);
     }, 500);
 
-    // Modal functions
+    // =====================================================
+    // MODAL FUNCTIONS
+    // =====================================================
     function openModal(modalId) {
       document.getElementById(modalId).classList.add('active');
     }
-    
     function closeModal(modalId) {
       document.getElementById(modalId).classList.remove('active');
     }
-    
+
+    // =====================================================
+    // RENDER: HEALTH RECORDS
+    // =====================================================
+    var currentHealthFilter = 'all';
+    function renderHealthRecords(filterPerson) {
+      if (filterPerson !== undefined) currentHealthFilter = filterPerson;
+      var container = document.getElementById('healthGrid');
+      if (!container) return;
+      var records = Store.get('health') || [];
+      var attachIcon = '<svg class="attachment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>';
+      var html = '';
+      for (var i = 0; i < records.length; i++) {
+        var r = records[i];
+        if (currentHealthFilter !== 'all' && r.person !== currentHealthFilter) continue;
+        html += '<div class="health-record" data-person="' + r.person + '" style="position:relative;">';
+        html += '<button class="delete-btn" onclick="event.stopPropagation(); deleteHealthRecord(' + r.id + ')" title="Delete record" style="position:absolute;top:0.75rem;right:0.75rem;">✕</button>';
+        html += '<div class="health-header"><span class="health-name">' + r.name + '</span><span class="health-date">' + r.date + '</span></div>';
+        html += '<div class="health-detail">' + r.detail + '</div>';
+        if (r.attachments && r.attachments.length) {
+          html += '<div class="health-attachments">';
+          for (var j = 0; j < r.attachments.length; j++) {
+            html += '<a href="#" class="event-attachment">' + attachIcon + ' ' + r.attachments[j].name + '</a>';
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      if (!html) html = '<div style="padding:2rem;text-align:center;color:#6b7280;">No health records found</div>';
+      container.innerHTML = html;
+    }
+
+    function filterHealth(person) {
+      renderHealthRecords(person);
+    }
+
+    // =====================================================
+    // RENDER: SPORT ENTRIES
+    // =====================================================
+    function renderSportEntries() {
+      var container = document.getElementById('sportEntriesList');
+      if (!container) return;
+      var entries = Store.get('sport_entries') || [];
+      var html = '';
+      for (var i = 0; i < entries.length; i++) {
+        var e = entries[i];
+        var badge = e.type === 'match' ? '🏆 Match' : '⚽ Training';
+        html += '<div class="sport-entry" style="position:relative;">';
+        html += '<button class="delete-btn" onclick="event.stopPropagation(); deleteSportEntry(' + e.id + ')" title="Delete entry" style="position:absolute;top:1rem;right:1rem;">✕</button>';
+        html += '<div class="sport-entry-header"><div>';
+        html += '<div class="sport-entry-title">' + e.title + '</div>';
+        html += '<div style="color:var(--text-medium);font-size:0.9rem;">📅 ' + e.date + ' &bull; ' + e.time + '</div>';
+        html += '</div><div class="sport-badge">' + badge + '</div></div>';
+        html += '<div style="margin:1rem 0;">' + e.notes + '</div>';
+        if (e.result) {
+          html += '<div class="sport-result"><div style="font-weight:600;margin-bottom:0.5rem;">' + (e.type === 'match' ? '🎯 Result:' : '📊 Performance Notes:') + '</div>';
+          html += '<div style="color:var(--text-medium);">' + e.result + '</div></div>';
+        }
+        html += '</div>';
+      }
+      if (!html) html = '<div style="padding:2rem;text-align:center;color:#6b7280;">No sport entries yet</div>';
+      container.innerHTML = html;
+    }
+
+    // =====================================================
+    // RENDER: PHOTOS
+    // =====================================================
+    var currentPhotoFilter = 'all';
+    function renderPhotos(filterYear) {
+      if (filterYear !== undefined) currentPhotoFilter = filterYear;
+      var container = document.getElementById('photoGrid');
+      if (!container) return;
+      var photos = Store.get('photos') || [];
+      var html = '';
+      for (var i = 0; i < photos.length; i++) {
+        var p = photos[i];
+        if (currentPhotoFilter !== 'all' && p.year !== currentPhotoFilter) continue;
+        html += '<div class="photo-card" data-year="' + p.year + '">';
+        html += '<div class="photo-placeholder">📷</div>';
+        html += '<div class="photo-info">' + p.title + '<br><span style="font-size:0.75rem;opacity:0.8;">' + p.date + '</span></div>';
+        html += '</div>';
+      }
+      if (!html) html = '<div style="padding:2rem;text-align:center;color:#6b7280;">No photos found</div>';
+      container.innerHTML = html;
+    }
+
+    function filterPhotos(year) {
+      renderPhotos(year);
+    }
+
+    // =====================================================
+    // RENDER: MEMORIES
+    // =====================================================
+    function renderMemories() {
+      var container = document.getElementById('memoryTimeline');
+      if (!container) return;
+      var memories = Store.get('memories') || [];
+      var html = '';
+      for (var i = 0; i < memories.length; i++) {
+        var m = memories[i];
+        html += '<div class="memory-item" style="position:relative;">';
+        html += '<button class="delete-btn" onclick="event.stopPropagation(); deleteMemory(' + m.id + ')" title="Delete memory" style="position:absolute;top:0;right:0;">✕</button>';
+        html += '<div class="memory-date">' + m.date + '</div>';
+        html += '<div class="memory-content"><div class="memory-title">' + m.title + '</div>';
+        html += '<div class="memory-text">' + m.text + '</div>';
+        if (m.hasPhotos) {
+          html += '<div class="memory-photos"><div class="memory-photo">📷</div><div class="memory-photo">📷</div></div>';
+        }
+        html += '</div></div>';
+      }
+      if (!html) html = '<div style="padding:2rem;text-align:center;color:#6b7280;">No memories yet</div>';
+      container.innerHTML = html;
+    }
+
+    // =====================================================
+    // RENDER: TASKS
+    // =====================================================
+    function renderTasks(category) {
+      var allTasks = Store.get('tasks') || { family: [], school: [], sport: [] };
+      var categories = category ? [category] : ['family', 'school', 'sport'];
+      for (var c = 0; c < categories.length; c++) {
+        var cat = categories[c];
+        var container = document.getElementById('taskList-' + cat);
+        if (!container) continue;
+        var tasks = allTasks[cat] || [];
+        var html = '';
+        for (var i = 0; i < tasks.length; i++) {
+          var t = tasks[i];
+          html += '<div class="task-item' + (t.completed ? ' completed' : '') + '" onclick="toggleTask(' + t.id + ', \'' + cat + '\')">';
+          html += '<div class="task-checkbox">' + (t.completed ? '✓' : '') + '</div>';
+          html += '<div class="task-text" style="flex:1;">' + t.text + '</div>';
+          html += '<button class="delete-btn" onclick="event.stopPropagation(); deleteTask(' + t.id + ', \'' + cat + '\')" title="Delete task">✕</button>';
+          html += '</div>';
+        }
+        if (!html) html = '<div style="padding:2rem;text-align:center;color:#6b7280;">No tasks yet</div>';
+        container.innerHTML = html;
+      }
+    }
+    // Initial render of tasks
+    renderTasks();
+
+    // =====================================================
+    // FORM HANDLERS
+    // =====================================================
     function addEvent(e) {
       e.preventDefault();
       var form = e.target;
@@ -2121,9 +2386,9 @@ END:VEVENT
       var location = inputs[3].value;
       var recurring = inputs[4].checked ? form.querySelectorAll('select')[1].value : false;
       var category = form.querySelectorAll('select')[recurring ? 2 : 1].value;
-
+      var events = Store.get('events') || [];
       var newEvent = {
-        id: eventsData.length + 1,
+        id: Store.getNextId('events'),
         title: getCategoryIcon(category) + ' ' + title,
         date: date,
         time: time || '',
@@ -2131,38 +2396,116 @@ END:VEVENT
         recurring: recurring,
         location: location || ''
       };
-      eventsData.push(newEvent);
+      events.push(newEvent);
+      Store.set('events', events);
       renderCalendar();
       renderUpcomingEvents();
       alert('Event added to Family Calendar!');
       form.reset();
       closeModal('eventModal');
     }
-    
+
     function addHealthRecord(e) {
       e.preventDefault();
-      alert('Health record added with attachments! (Demo)');
+      var form = e.target;
+      var selects = form.querySelectorAll('select');
+      var inputs = form.querySelectorAll('input');
+      var textareas = form.querySelectorAll('textarea');
+      var person = selects[0].value;
+      var personName = selects[0].options[selects[0].selectedIndex].text;
+      var date = inputs[0].value;
+      var detail = textareas[0].value;
+      var records = Store.get('health') || [];
+      var dateFormatted = new Date(date).toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      records.unshift({
+        id: Store.getNextId('health'),
+        person: person,
+        name: personName,
+        date: dateFormatted,
+        detail: detail,
+        attachments: []
+      });
+      Store.set('health', records);
+      renderHealthRecords();
+      alert('Health record added!');
+      form.reset();
       closeModal('healthModal');
     }
-    
+
     function addPhoto(e) {
       e.preventDefault();
-      alert('Photos uploaded successfully!');
+      var form = e.target;
+      var inputs = form.querySelectorAll('input');
+      var date = inputs[1].value;
+      var description = inputs[2].value || 'New Photo';
+      var d = new Date(date);
+      var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      var photos = Store.get('photos') || [];
+      photos.unshift({
+        id: Store.getNextId('photos'),
+        title: description,
+        date: monthNames[d.getMonth()] + ' ' + d.getDate(),
+        year: String(d.getFullYear())
+      });
+      Store.set('photos', photos);
+      renderPhotos();
+      alert('Photo added!');
+      form.reset();
       closeModal('photoModal');
     }
-    
+
     function addMemory(e) {
       e.preventDefault();
-      alert('Memory added successfully!');
+      var form = e.target;
+      var inputs = form.querySelectorAll('input');
+      var textareas = form.querySelectorAll('textarea');
+      var date = inputs[0].value;
+      var title = inputs[1].value;
+      var text = textareas[0].value;
+      var hasPhotos = form.querySelectorAll('input[type="file"]')[0].files.length > 0;
+      var d = new Date(date);
+      var monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      var memories = Store.get('memories') || [];
+      memories.unshift({
+        id: Store.getNextId('memories'),
+        date: monthNames[d.getMonth()] + ' ' + d.getFullYear(),
+        title: title,
+        text: text,
+        hasPhotos: hasPhotos
+      });
+      Store.set('memories', memories);
+      renderMemories();
+      alert('Memory added!');
+      form.reset();
       closeModal('memoryModal');
     }
-    
+
     function addTrip(e) {
       e.preventDefault();
-      alert('Trip created successfully!');
+      var form = e.target;
+      var inputs = form.querySelectorAll('input');
+      var name = inputs[0].value;
+      var dest = inputs[1].value;
+      var startDate = inputs[2].value;
+      var endDate = inputs[3].value;
+      // Add to sidebar
+      var tripList = document.querySelector('.trip-list');
+      if (tripList) {
+        var item = document.createElement('div');
+        item.className = 'trip-item';
+        item.onclick = function(ev) { showTrip('custom', ev); };
+        var s = new Date(startDate);
+        var ed = new Date(endDate);
+        var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        var days = Math.ceil((ed - s) / (1000 * 60 * 60 * 24)) + 1;
+        item.innerHTML = '<div class="trip-item-name">' + name + '</div><div class="trip-item-dates">' + monthNames[s.getMonth()] + ' ' + s.getDate() + '-' + ed.getDate() + ', ' + s.getFullYear() + ' &bull; ' + days + ' days</div>';
+        tripList.appendChild(item);
+      }
+      alert('Trip created!');
+      form.reset();
       closeModal('tripModal');
     }
-    
+
     function addSportEntry(e) {
       e.preventDefault();
       var participant = document.getElementById('sportParticipant');
@@ -2176,6 +2519,7 @@ END:VEVENT
       var location = document.getElementById('sportLocation');
       var addToCal = document.getElementById('sportAddToCalendar');
       var notes = document.getElementById('sportNotes');
+      var matchResultEl = document.querySelector('#matchResult input');
 
       var sportIcons = { soccer: '⚽', futsal: '⚽', basketball: '🏀', rowing: '🚣', 'table-tennis': '🏓', golf: '⛳' };
       var sportIcon = sportIcons[sport.value] || '🏅';
@@ -2184,20 +2528,37 @@ END:VEVENT
       var entryTitle = title.value || (participantName + ' - ' + sportName + ' ' + entryType.options[entryType.selectedIndex].text);
       var timeRange = startTime.value + (endTime.value ? ' - ' + endTime.value : '');
 
+      // Save sport entry
+      var entries = Store.get('sport_entries') || [];
+      entries.unshift({
+        id: Store.getNextId('sport_entries'),
+        title: entryTitle,
+        date: startDate.value,
+        time: timeRange,
+        type: entryType.value,
+        participant: participantName,
+        sport: sport.value,
+        notes: notes.value || '',
+        result: matchResultEl ? matchResultEl.value : ''
+      });
+      Store.set('sport_entries', entries);
+      renderSportEntries();
+
+      // Add to calendar if checked
       if (addToCal && addToCal.checked) {
-        var newEvent = {
-          id: eventsData.length + 1,
+        var events = Store.get('events') || [];
+        events.push({
+          id: Store.getNextId('events'),
           title: sportIcon + ' ' + entryTitle,
           date: startDate.value,
-          endDate: endDate.value || null,
           time: timeRange,
           category: 'sport',
           recurring: false,
           location: location.value || '',
           participant: participantName,
           sport: sportName
-        };
-        eventsData.push(newEvent);
+        });
+        Store.set('events', events);
         renderCalendar();
         renderUpcomingEvents();
       }
@@ -2208,121 +2569,145 @@ END:VEVENT
       document.getElementById('matchResult').style.display = 'none';
       closeModal('sportModal');
     }
-    
+
     function addTask(e) {
       e.preventDefault();
+      var form = e.target;
       var category = document.getElementById('taskCategory').value;
-      alert('Task added to ' + category + ' category!');
+      var text = form.querySelectorAll('input[type="text"]')[0].value;
+      var allTasks = Store.get('tasks') || { family: [], school: [], sport: [] };
+      if (!allTasks[category]) allTasks[category] = [];
+      var maxId = 0;
+      for (var i = 0; i < allTasks[category].length; i++) {
+        if (allTasks[category][i].id > maxId) maxId = allTasks[category][i].id;
+      }
+      allTasks[category].unshift({ id: maxId + 1, text: text, completed: false });
+      Store.set('tasks', allTasks);
+      renderTasks(category);
+      alert('Task added to ' + category + '!');
+      form.reset();
       closeModal('taskModal');
     }
-    
-    function toggleSportFields() {
-      var sportType = document.getElementById('sportType').value;
-      var matchResult = document.getElementById('matchResult');
-      matchResult.style.display = (sportType === 'match') ? 'block' : 'none';
-    }
-    
-    function filterHealth(person) {
-      document.querySelectorAll('.health-record').forEach(record => {
-        record.style.display = (person === 'all' || record.dataset.person === person) ? 'block' : 'none';
-      });
-    }
 
-    // Photos page functions
-    function filterPhotos(year) {
-      var photos = document.querySelectorAll('.photo-card');
-      for (var i = 0; i < photos.length; i++) {
-        if (year === 'all' || photos[i].dataset.year === year) {
-          photos[i].style.display = '';
-        } else {
-          photos[i].style.display = 'none';
+    // =====================================================
+    // TOGGLE & DELETE HANDLERS
+    // =====================================================
+    function toggleTask(id, category) {
+      var allTasks = Store.get('tasks') || { family: [], school: [], sport: [] };
+      var tasks = allTasks[category] || [];
+      for (var i = 0; i < tasks.length; i++) {
+        if (tasks[i].id === id) {
+          tasks[i].completed = !tasks[i].completed;
+          break;
         }
       }
+      allTasks[category] = tasks;
+      Store.set('tasks', allTasks);
+      renderTasks(category);
     }
 
-    // Trips page functions
+    function deleteEvent(id) {
+      if (!confirm('Delete this event?')) return;
+      var events = Store.get('events') || [];
+      events = events.filter(function(e) { return e.id !== id; });
+      Store.set('events', events);
+      renderCalendar();
+      renderUpcomingEvents();
+    }
+
+    function deleteTask(id, category) {
+      var allTasks = Store.get('tasks') || { family: [], school: [], sport: [] };
+      allTasks[category] = (allTasks[category] || []).filter(function(t) { return t.id !== id; });
+      Store.set('tasks', allTasks);
+      renderTasks(category);
+    }
+
+    function deleteHealthRecord(id) {
+      if (!confirm('Delete this health record?')) return;
+      var records = Store.get('health') || [];
+      records = records.filter(function(r) { return r.id !== id; });
+      Store.set('health', records);
+      renderHealthRecords();
+    }
+
+    function deleteSportEntry(id) {
+      if (!confirm('Delete this sport entry?')) return;
+      var entries = Store.get('sport_entries') || [];
+      entries = entries.filter(function(e) { return e.id !== id; });
+      Store.set('sport_entries', entries);
+      renderSportEntries();
+    }
+
+    function deleteMemory(id) {
+      if (!confirm('Delete this memory?')) return;
+      var memories = Store.get('memories') || [];
+      memories = memories.filter(function(m) { return m.id !== id; });
+      Store.set('memories', memories);
+      renderMemories();
+    }
+
+    // =====================================================
+    // EXISTING UI FUNCTIONS
+    // =====================================================
+    function toggleSportFields() {
+      var sportType = document.getElementById('sportType').value;
+      document.getElementById('matchResult').style.display = (sportType === 'match') ? 'block' : 'none';
+    }
+
     function showTrip(tripId, e) {
-      // Update sidebar active state
       var items = document.querySelectorAll('.trip-item');
-      for (var i = 0; i < items.length; i++) {
-        items[i].classList.remove('active');
-      }
+      for (var i = 0; i < items.length; i++) items[i].classList.remove('active');
       var evt = e || window.event;
-      if (evt && evt.currentTarget) {
-        evt.currentTarget.classList.add('active');
-      }
+      if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
     }
 
     function showTripTab(tabName, e) {
       var tabs = document.querySelectorAll('.trip-tab');
-      for (var i = 0; i < tabs.length; i++) {
-        tabs[i].classList.remove('active');
-      }
+      for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
       var contents = document.querySelectorAll('.trip-tab-content');
-      for (var i = 0; i < contents.length; i++) {
-        contents[i].classList.remove('active');
-      }
-
+      for (var i = 0; i < contents.length; i++) contents[i].classList.remove('active');
       var evt = e || window.event;
-      if (evt && evt.currentTarget) {
-        evt.currentTarget.classList.add('active');
-      }
+      if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
       var tabEl = document.getElementById('trip-' + tabName);
-      if (tabEl) {
-        tabEl.classList.add('active');
-      }
+      if (tabEl) tabEl.classList.add('active');
     }
 
-    // Tasks page functions
     function showTaskTab(tabName) {
       var tabs = document.querySelectorAll('.task-tab');
-      for (var i = 0; i < tabs.length; i++) {
-        tabs[i].classList.remove('active');
-      }
+      for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
       var contents = document.querySelectorAll('.task-content');
-      for (var i = 0; i < contents.length; i++) {
-        contents[i].classList.remove('active');
-      }
-      
+      for (var i = 0; i < contents.length; i++) contents[i].classList.remove('active');
       event.currentTarget.classList.add('active');
       document.getElementById('task-' + tabName).classList.add('active');
+      renderTasks(tabName);
     }
 
-    function toggleTask(taskElement) {
-      taskElement.classList.toggle('completed');
-      var checkbox = taskElement.querySelector('.task-checkbox');
-      if (checkbox) {
-        if (taskElement.classList.contains('completed')) {
-          checkbox.textContent = '\u2713';
-        } else {
-          checkbox.textContent = '';
-        }
-      }
-    }
-
-    // Timeline page functions
-    function filterTimeline(category, e) {
+    function filterTimeline(category) {
       var items = document.querySelectorAll('.timeline-item');
       for (var i = 0; i < items.length; i++) {
-        if (category === 'all' || items[i].dataset.category === category) {
-          items[i].style.display = '';
-        } else {
-          items[i].style.display = 'none';
-        }
+        items[i].style.display = (category === 'all' || items[i].dataset.category === category) ? '' : 'none';
       }
     }
 
-
-    // Toggle recurring options
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
     document.addEventListener('DOMContentLoaded', function() {
-      const recurringCheckbox = document.getElementById('recurringEvent');
-      const recurringOptions = document.getElementById('recurringOptions');
-      
+      // Recurring checkbox toggle
+      var recurringCheckbox = document.getElementById('recurringEvent');
+      var recurringOptions = document.getElementById('recurringOptions');
       if (recurringCheckbox) {
         recurringCheckbox.addEventListener('change', function() {
           recurringOptions.style.display = this.checked ? 'block' : 'none';
         });
       }
+      // Check auth on load
+      checkAuth();
+      // Initial renders
+      renderHealthRecords();
+      renderSportEntries();
+      renderPhotos();
+      renderMemories();
     });
   </script>
 </body>
