@@ -372,10 +372,10 @@
       <img class="logo-image" src="Family Hub with sports and family icons.png" alt="Family Hub">
       <h2 class="login-title" id="loginTitle">Set Your PIN</h2>
       <p class="login-subtitle" id="loginSubtitle">Choose a 4-digit PIN to secure your Family Hub</p>
-      <form id="loginForm" onsubmit="handleLogin(event)">
+      <form id="loginForm" onsubmit="event.preventDefault(); submitPin();">
         <input type="password" id="pinInput" class="pin-input" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="----" required autocomplete="off">
         <div class="login-error" id="loginError"></div>
-        <button type="submit" class="btn login-btn" id="loginBtn">Set PIN</button>
+        <button type="submit" class="btn login-btn" id="loginBtn">Enter</button>
       </form>
     </div>
   </div>
@@ -1389,25 +1389,29 @@
           <h2 class="card-title">Important Links</h2>
         </div>
         <div class="link-list">
-          <a href="https://www.svc.tas.edu.au" target="_blank" class="link-item">
+          <a href="https://www.stvirgils.tas.edu.au" target="_blank" class="link-item">
             <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
             St Virgil's College Website
           </a>
-          <a href="https://www.svc.tas.edu.au/parent-portal" target="_blank" class="link-item">
+          <a href="http://pam.stvirgils.tas.edu.au/" target="_blank" class="link-item">
             <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            Parent Portal Login
+            Parent Portal (PAM) Login
           </a>
-          <a href="https://www.svc.tas.edu.au/calendar" target="_blank" class="link-item">
+          <a href="https://www.stvirgils.tas.edu.au/news-a-events/calendar" target="_blank" class="link-item">
             <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
             School Calendar 2026
           </a>
-          <a href="/cdn-cgi/l/email-protection#e48580898d8aa4979287ca908597ca818091ca8591" class="link-item">
+          <a href="mailto:jsadmin@stvirgils.tas.edu.au" class="link-item">
             <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
             Contact School Office
           </a>
-          <a href="https://www.svc.tas.edu.au/uniform" target="_blank" class="link-item">
+          <a href="https://www.stvirgils.tas.edu.au/shop/uniform-shop" target="_blank" class="link-item">
             <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
             Uniform Shop
+          </a>
+          <a href="https://www.stvirgils.tas.edu.au/our-college/about/term-dates" target="_blank" class="link-item">
+            <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><line x1="3" y1="14" x2="21" y2="14"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            Term Dates
           </a>
         </div>
       </div>
@@ -1421,7 +1425,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">Term 1</div>
-                <div style="color: var(--text-medium);">February 3 - April 9, 2026</div>
+                <div style="color: var(--text-medium);">February 6 - April 16, 2026</div>
               </div>
               <div style="background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">10 weeks</div>
             </div>
@@ -1430,7 +1434,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">Term 2</div>
-                <div style="color: var(--text-medium);">April 27 - July 3, 2026</div>
+                <div style="color: var(--text-medium);">May 5 - July 10, 2026</div>
               </div>
               <div style="background: var(--secondary); color: white; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">10 weeks</div>
             </div>
@@ -1439,18 +1443,18 @@
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">Term 3</div>
-                <div style="color: var(--text-medium);">July 20 - September 25, 2026</div>
+                <div style="color: var(--text-medium);">July 28 - October 1, 2026</div>
               </div>
-              <div style="background: var(--accent); color: white; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">10 weeks</div>
+              <div style="background: var(--accent); color: white; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">9 weeks</div>
             </div>
           </div>
           <div style="background: var(--bg-light); padding: 1.25rem; border-radius: 8px; border-left: 4px solid #10b981;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">Term 4</div>
-                <div style="color: var(--text-medium);">October 12 - December 11, 2026</div>
+                <div style="color: var(--text-medium);">October 19 - December 11, 2026</div>
               </div>
-              <div style="background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">9 weeks</div>
+              <div style="background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">8 weeks</div>
             </div>
           </div>
         </div>
@@ -1461,25 +1465,48 @@
           <h2 class="card-title">📞 Contact Information</h2>
         </div>
         <div style="display: grid; gap: 1rem;">
+          <div style="font-weight: 700; font-size: 1.1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-light);">Junior School (K-6)</div>
           <div style="display: flex; gap: 1rem; padding: 1rem; background: var(--bg-light); border-radius: 6px;">
             <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; flex-shrink: 0;">📧</div>
             <div>
               <div style="font-weight: 600; margin-bottom: 0.25rem;">Email</div>
-              <div style="color: var(--text-medium);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c1a0a5aca8af81b2b7a2efb5a0b2efa4a5b4efa0b4">[email&#160;protected]</a></div>
+              <div style="color: var(--text-medium);"><a href="mailto:jsadmin@stvirgils.tas.edu.au">jsadmin@stvirgils.tas.edu.au</a></div>
             </div>
           </div>
           <div style="display: flex; gap: 1rem; padding: 1rem; background: var(--bg-light); border-radius: 6px;">
             <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; flex-shrink: 0;">📱</div>
             <div>
               <div style="font-weight: 600; margin-bottom: 0.25rem;">Phone</div>
-              <div style="color: var(--text-medium);">(03) 6108 5300</div>
+              <div style="color: var(--text-medium);"><a href="tel:0362342440">(03) 6234 2440</a></div>
             </div>
           </div>
           <div style="display: flex; gap: 1rem; padding: 1rem; background: var(--bg-light); border-radius: 6px;">
             <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; flex-shrink: 0;">📍</div>
             <div>
               <div style="font-weight: 600; margin-bottom: 0.25rem;">Address</div>
-              <div style="color: var(--text-medium);">Patrick St, Hobart TAS 7000</div>
+              <div style="color: var(--text-medium);">102 Patrick Street, Hobart TAS 7000</div>
+            </div>
+          </div>
+          <div style="font-weight: 700; font-size: 1.1rem; padding-top: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-light);">Senior School (7-12)</div>
+          <div style="display: flex; gap: 1rem; padding: 1rem; background: var(--bg-light); border-radius: 6px;">
+            <div style="width: 40px; height: 40px; background: var(--secondary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; flex-shrink: 0;">📧</div>
+            <div>
+              <div style="font-weight: 600; margin-bottom: 0.25rem;">Email</div>
+              <div style="color: var(--text-medium);"><a href="mailto:adminsvc@stvirgils.tas.edu.au">adminsvc@stvirgils.tas.edu.au</a></div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 1rem; padding: 1rem; background: var(--bg-light); border-radius: 6px;">
+            <div style="width: 40px; height: 40px; background: var(--secondary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; flex-shrink: 0;">📱</div>
+            <div>
+              <div style="font-weight: 600; margin-bottom: 0.25rem;">Phone</div>
+              <div style="color: var(--text-medium);"><a href="tel:0362496555">(03) 6249 6555</a></div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 1rem; padding: 1rem; background: var(--bg-light); border-radius: 6px;">
+            <div style="width: 40px; height: 40px; background: var(--secondary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; flex-shrink: 0;">📍</div>
+            <div>
+              <div style="font-weight: 600; margin-bottom: 0.25rem;">Address</div>
+              <div style="color: var(--text-medium);">195 Main Road, Austins Ferry TAS 7011</div>
             </div>
           </div>
         </div>
@@ -1580,6 +1607,17 @@
         return;
       }
       document.getElementById('loginOverlay').style.display = 'flex';
+      // Update title based on whether PIN already exists
+      var hasPin = localStorage.getItem('fh_pinHash');
+      var titleEl = document.getElementById('loginTitle');
+      var subtitleEl = document.getElementById('loginSubtitle');
+      if (hasPin) {
+        if (titleEl) titleEl.textContent = 'Enter Your PIN';
+        if (subtitleEl) subtitleEl.textContent = 'Enter your 4-digit PIN to access Family Hub';
+      } else {
+        if (titleEl) titleEl.textContent = 'Set Your PIN';
+        if (subtitleEl) subtitleEl.textContent = 'Choose a 4-digit PIN to secure your Family Hub';
+      }
     }
 
     async function submitPin() {
@@ -1694,7 +1732,7 @@
           { id: 1, title: "Japan Trip", date: "2026-10-01", time: "06:00", category: "travel", recurring: false },
           { id: 2, title: "Finn Soccer - Glenorchy Knights", date: "2026-02-08", time: "10:00", category: "sport", recurring: true, recurrenceType: "weekly" },
           { id: 3, title: "Darcy Basketball", date: "2026-02-05", time: "16:00", category: "sport", recurring: true, recurrenceType: "weekly" },
-          { id: 4, title: "School Term 1 Starts", date: "2026-02-03", time: "08:30", category: "school", recurring: false },
+          { id: 4, title: "School Term 1 Starts", date: "2026-02-06", time: "08:30", category: "school", recurring: false },
           { id: 5, title: "Family Dinner", date: "2026-02-07", time: "18:00", category: "family", recurring: true, recurrenceType: "weekly" },
           { id: 6, title: "Dr Wilson - Finn Check-up", date: "2026-02-15", time: "10:00", category: "health", recurring: false }
         ],
