@@ -1729,7 +1729,7 @@
     function seedDefaultData(callback) {
       var defaultData = {
         events: [
-          { id: 1, title: "Japan Trip", date: "2026-10-01", time: "06:00", category: "travel", recurring: false },
+          { id: 1, title: "Japan Trip", date: "2026-10-05", time: "06:00", category: "travel", recurring: false },
           { id: 2, title: "Finn Soccer - Glenorchy Knights", date: "2026-02-08", time: "10:00", category: "sport", recurring: true, recurrenceType: "weekly" },
           { id: 3, title: "Darcy Basketball", date: "2026-02-05", time: "16:00", category: "sport", recurring: true, recurrenceType: "weekly" },
           { id: 4, title: "School Term 1 Starts", date: "2026-02-06", time: "08:30", category: "school", recurring: false },
@@ -1786,40 +1786,40 @@
         ],
         trips: [
           {
-            id: 1, name: "Japan 2026", destination: "Japan", startDate: "2026-10-01", endDate: "2026-10-13",
+            id: 1, name: "Japan 2026", destination: "Japan", startDate: "2026-10-05", endDate: "2026-10-17",
             budget: 15000, spent: 8450, status: "upcoming", coords: [35.6762, 139.6503],
             image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800",
             itinerary: [
-              { day: 1, title: "Arrival in Tokyo", date: "Wednesday, Oct 1", activities: [
+              { day: 1, title: "Arrival in Tokyo", date: "Monday, Oct 5", activities: [
                 { time: "14:00", name: "Land at Narita Airport", desc: "Flight QF79 from Sydney - Booking ref: ABC123" },
                 { time: "16:30", name: "Check-in at Hotel", desc: "Shinjuku Prince Hotel - Reservation: DEF456" },
                 { time: "19:00", name: "Dinner in Shinjuku", desc: "Explore local restaurants and izakayas" }
               ]},
-              { day: 2, title: "Tokyo DisneySea", date: "Thursday, Oct 2", activities: [
+              { day: 2, title: "Tokyo DisneySea", date: "Tuesday, Oct 6", activities: [
                 { time: "08:00", name: "Tokyo DisneySea - Full Day", desc: "Tickets booked - arrive early for rope drop" },
                 { time: "21:00", name: "Return to Hotel", desc: "Train from Maihama Station" }
               ]},
-              { day: 3, title: "Tokyo Disneyland", date: "Friday, Oct 3", activities: [
+              { day: 3, title: "Tokyo Disneyland", date: "Wednesday, Oct 7", activities: [
                 { time: "08:00", name: "Tokyo Disneyland - Full Day", desc: "Priority: Space Mountain, Big Thunder Mountain" }
               ]},
-              { day: 4, title: "Tokyo Exploration", date: "Saturday, Oct 4", activities: [
+              { day: 4, title: "Tokyo Exploration", date: "Thursday, Oct 8", activities: [
                 { time: "09:00", name: "Senso-ji Temple", desc: "Historic temple in Asakusa" },
                 { time: "13:00", name: "teamLab Borderless", desc: "Digital art museum - tickets pre-booked" },
                 { time: "19:00", name: "Shibuya Crossing & Dinner", desc: "Explore Shibuya area" }
               ]},
-              { day: 5, title: "Mt Fuji Day Trip", date: "Sunday, Oct 5", activities: [
+              { day: 5, title: "Mt Fuji Day Trip", date: "Friday, Oct 9", activities: [
                 { time: "07:00", name: "Depart for Mt Fuji", desc: "Bus tour - Lake Kawaguchi and 5th Station" },
                 { time: "19:00", name: "Return to Tokyo", desc: "Evening free in Shinjuku" }
               ]},
-              { day: 6, title: "Travel to Osaka", date: "Monday, Oct 6", activities: [
+              { day: 6, title: "Travel to Osaka", date: "Saturday, Oct 10", activities: [
                 { time: "10:00", name: "Shinkansen to Osaka", desc: "2.5 hour bullet train - JR Pass" },
                 { time: "15:00", name: "Check-in Osaka Hotel", desc: "Hotel in Namba area" },
                 { time: "18:00", name: "Dotonbori District", desc: "Neon lights, street food, takoyaki" }
               ]},
-              { day: 7, title: "Universal Studios Japan", date: "Tuesday, Oct 7", activities: [
+              { day: 7, title: "Universal Studios Japan", date: "Sunday, Oct 11", activities: [
                 { time: "08:00", name: "USJ - Full Day", desc: "Super Nintendo World, Harry Potter" }
               ]},
-              { day: 8, title: "Osaka & Kyoto", date: "Wednesday, Oct 8", activities: [
+              { day: 8, title: "Osaka & Kyoto", date: "Monday, Oct 12", activities: [
                 { time: "09:00", name: "Osaka Castle", desc: "Historic castle and grounds" },
                 { time: "14:00", name: "Day Trip to Kyoto", desc: "Fushimi Inari, Arashiyama Bamboo Grove" }
               ]}
@@ -1965,7 +1965,7 @@
     }
 
     function renderUpcomingEvents() {
-      var container = document.getElementById('upcomingEvents');
+      var container = document.getElementById('upcomingEventsHome') || document.getElementById('upcomingEvents');
       if (!container) return;
       var events = Store.get('events') || [];
       var today = new Date().toISOString().split('T')[0];
@@ -2445,6 +2445,11 @@
       if (bounds.length > 1) {
         worldMap.fitBounds(bounds, { padding: [30, 30] });
       }
+
+      // Fix Leaflet rendering when container wasn't fully visible at init
+      setTimeout(function() {
+        if (worldMap) worldMap.invalidateSize();
+      }, 200);
     }
 
     function geocodeDestination(destination, callback) {
@@ -2460,6 +2465,32 @@
     // =====================================================
     // LIVE SPORT STANDINGS
     // =====================================================
+    function fetchWithTimeout(url, ms) {
+      return new Promise(function(resolve, reject) {
+        var timer = setTimeout(function() { reject(new Error('timeout')); }, ms);
+        fetch(url).then(function(r) { clearTimeout(timer); resolve(r); }).catch(function(e) { clearTimeout(timer); reject(e); });
+      });
+    }
+
+    function tryFetchStandings(espnUrl) {
+      var proxies = [
+        'https://api.allorigins.win/raw?url=' + encodeURIComponent(espnUrl),
+        'https://corsproxy.io/?' + encodeURIComponent(espnUrl),
+        'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(espnUrl)
+      ];
+
+      function tryNext(idx) {
+        if (idx >= proxies.length) return Promise.reject(new Error('all proxies failed'));
+        return fetchWithTimeout(proxies[idx], 6000)
+          .then(function(r) {
+            if (!r.ok) throw new Error('status ' + r.status);
+            return r.json();
+          })
+          .catch(function() { return tryNext(idx + 1); });
+      }
+      return tryNext(0);
+    }
+
     function fetchAllStandings() {
       var container = document.getElementById('standingsGrid');
       if (!container) return;
@@ -2478,14 +2509,13 @@
       var completed = 0;
 
       teams.forEach(function(t) {
-        var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(t.url);
-        fetch(proxyUrl, { signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined })
-          .then(function(r) { return r.json(); })
+        tryFetchStandings(t.url)
           .then(function(data) {
             results[t.key] = parseStandings(data, t);
             localStorage.setItem('fh_standings_' + t.key, JSON.stringify({ data: results[t.key], time: Date.now() }));
           })
           .catch(function() {
+            // Try cached data first
             var cached = localStorage.getItem('fh_standings_' + t.key);
             if (cached) { try { results[t.key] = JSON.parse(cached).data; } catch(e) {} }
             if (!results[t.key]) results[t.key] = getFallbackStandings(t.key);
