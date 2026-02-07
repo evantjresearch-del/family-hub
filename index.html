@@ -48,10 +48,11 @@
     .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-light); }
     .card-title { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700; }
     
-    .countdown-calendar-section { display: grid; grid-template-columns: 1fr 1.5fr; gap: 2rem; margin-bottom: 2.5rem; }
+    .countdown-calendar-section { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2.5rem; }
+    .countdown-cards { display: flex; flex-direction: column; gap: 1rem; }
     
     .countdown-card { background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 8px; padding: 0; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
-    .countdown-image { width: 100%; height: 180px; background: url('https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800') center/cover; position: relative; }
+    .countdown-image { width: 100%; height: 180px; background-size: cover; background-position: center; position: relative; }
     .countdown-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to bottom, transparent, rgba(37, 99, 235, 0.8)); display: flex; align-items: flex-end; padding: 1.5rem; }
     .countdown-destination { color: white; font-size: 1.5rem; font-weight: 700; font-family: var(--font-heading); }
     .countdown-body { padding: 2rem; text-align: center; color: white; }
@@ -445,18 +446,7 @@
 
       <!-- Countdown + Mini Calendar -->
       <div class="countdown-calendar-section">
-        <div class="countdown-card">
-          <div class="countdown-image">
-            <div class="countdown-overlay">
-              <div class="countdown-destination">Japan 2026 🇯🇵</div>
-            </div>
-          </div>
-          <div class="countdown-body">
-            <div class="countdown-title">Countdown</div>
-            <div class="countdown-value" id="daysToJapan">248</div>
-            <div class="countdown-label">Days Until Departure</div>
-          </div>
-        </div>
+        <div id="countdownContainer"></div>
 
         <div class="mini-calendar-card">
           <div class="mini-calendar-header">
@@ -1909,7 +1899,7 @@
     function renderCalendar() {
       var grid = document.getElementById('calendarGrid');
       if (!grid) return;
-      var monthLabel = document.getElementById('calendarMonth');
+      var monthLabel = document.getElementById('currentMonth');
       var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
       if (monthLabel) monthLabel.textContent = monthNames[currentMonth] + ' ' + currentYear;
       var firstDay = new Date(currentYear, currentMonth, 1).getDay();
@@ -1938,6 +1928,7 @@
 
     function prevMonth() { currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; } renderCalendar(); renderEventList(); }
     function nextMonth() { currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } renderCalendar(); renderEventList(); }
+    function changeMonth(dir) { if (dir < 0) prevMonth(); else nextMonth(); }
     function prevMiniMonth() { miniMonth--; if (miniMonth < 0) { miniMonth = 11; miniYear--; } renderMiniCalendar(); }
     function nextMiniMonth() { miniMonth++; if (miniMonth > 11) { miniMonth = 0; miniYear++; } renderMiniCalendar(); }
 
@@ -2491,38 +2482,77 @@
       return tryNext(0);
     }
 
+    var standingsTeams = [
+      { key: 'nba', label: '\ud83c\udfc0 NBA - OKC Thunder', team: 'Oklahoma City Thunder',
+        url: 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings' },
+      { key: 'epl', label: '\u26bd EPL - Man United', team: 'Manchester United',
+        url: 'https://site.api.espn.com/apis/v2/sports/soccer/eng.1/standings' },
+      { key: 'nbl', label: '\ud83c\udfc0 NBL - JackJumpers', team: 'Tasmania JackJumpers',
+        url: 'https://site.api.espn.com/apis/v2/sports/basketball/nbl-australia/standings' }
+    ];
+
+    function getStandingsLastUpdated() {
+      var oldest = null;
+      for (var i = 0; i < standingsTeams.length; i++) {
+        var cached = localStorage.getItem('fh_standings_' + standingsTeams[i].key);
+        if (cached) {
+          try { var t = JSON.parse(cached).time; if (!oldest || t < oldest) oldest = t; } catch(e) {}
+        }
+      }
+      return oldest;
+    }
+
+    function formatLastUpdated(timestamp) {
+      if (!timestamp) return 'Using default data';
+      var d = new Date(timestamp);
+      var now = new Date();
+      var diffMs = now - d;
+      var diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'Updated just now';
+      if (diffMins < 60) return 'Updated ' + diffMins + 'm ago';
+      var diffHrs = Math.floor(diffMins / 60);
+      if (diffHrs < 24) return 'Updated ' + diffHrs + 'h ago';
+      var diffDays = Math.floor(diffHrs / 24);
+      return 'Updated ' + diffDays + 'd ago';
+    }
+
     function fetchAllStandings() {
       var container = document.getElementById('standingsGrid');
       if (!container) return;
-      container.innerHTML = '<div class="standings-loading">Loading live standings...</div>';
 
-      var teams = [
-        { key: 'nba', label: '\ud83c\udfc0 NBA - OKC Thunder', team: 'Oklahoma City Thunder',
-          url: 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings' },
-        { key: 'epl', label: '\u26bd EPL - Man United', team: 'Manchester United',
-          url: 'https://site.api.espn.com/apis/v2/sports/soccer/eng.1/standings' },
-        { key: 'nbl', label: '\ud83c\udfc0 NBL - JackJumpers', team: 'Tasmania JackJumpers',
-          url: 'https://site.api.espn.com/apis/v2/sports/basketball/nbl-australia/standings' }
-      ];
+      // Show cached or fallback data immediately
+      var initialResults = {};
+      var hasCached = false;
+      standingsTeams.forEach(function(t) {
+        var cached = localStorage.getItem('fh_standings_' + t.key);
+        if (cached) {
+          try { initialResults[t.key] = JSON.parse(cached).data; hasCached = true; } catch(e) {}
+        }
+        if (!initialResults[t.key]) initialResults[t.key] = getFallbackStandings(t.key);
+      });
+      renderStandings(initialResults, standingsTeams);
 
+      // Try to fetch live data in background
       var results = {};
       var completed = 0;
+      var anySuccess = false;
 
-      teams.forEach(function(t) {
+      standingsTeams.forEach(function(t) {
         tryFetchStandings(t.url)
           .then(function(data) {
             results[t.key] = parseStandings(data, t);
             localStorage.setItem('fh_standings_' + t.key, JSON.stringify({ data: results[t.key], time: Date.now() }));
+            anySuccess = true;
           })
           .catch(function() {
-            // Try cached data first
-            var cached = localStorage.getItem('fh_standings_' + t.key);
-            if (cached) { try { results[t.key] = JSON.parse(cached).data; } catch(e) {} }
-            if (!results[t.key]) results[t.key] = getFallbackStandings(t.key);
+            results[t.key] = initialResults[t.key];
           })
           .finally(function() {
             completed++;
-            if (completed === teams.length) renderStandings(results, teams);
+            if (completed === standingsTeams.length && anySuccess) {
+              for (var k in initialResults) { if (!results[k]) results[k] = initialResults[k]; }
+              renderStandings(results, standingsTeams);
+            }
           });
       });
     }
@@ -2588,13 +2618,15 @@
       var html = '';
       teams.forEach(function(t) {
         var data = results[t.key] || getFallbackStandings(t.key);
+        var cached = localStorage.getItem('fh_standings_' + t.key);
+        var ts = cached ? (function() { try { return JSON.parse(cached).time; } catch(e) { return null; } })() : null;
         html += '<div class="standing-card"><div class="standing-header">' + data.label + '</div><div class="standing-body">';
         for (var i = 0; i < data.entries.length; i++) {
           var e = data.entries[i];
           var cls = e.isOurTeam ? ' our-team' : '';
           html += '<div class="standing-item' + cls + '"><span class="team-name">' + e.rank + '. ' + e.name + '</span><span class="team-record">' + e.record + '</span></div>';
         }
-        html += '</div></div>';
+        html += '</div><div class="next-game"><span class="next-game-detail" style="font-size:0.8rem;color:var(--text-light)">' + formatLastUpdated(ts) + '</span></div></div>';
       });
       container.innerHTML = html;
     }
@@ -2966,23 +2998,69 @@
     // =====================================================
     // COUNTDOWN
     // =====================================================
+    function getUnsplashUrl(destination) {
+      var keywords = {
+        'japan': 'photo-1540959733332-eab4deabeeaf',
+        'tokyo': 'photo-1540959733332-eab4deabeeaf',
+        'melbourne': 'photo-1514395462725-fb4566210144',
+        'sydney': 'photo-1506973035872-a4ec16b8e8d9',
+        'bali': 'photo-1537996194471-e657df975ab4',
+        'london': 'photo-1513635269975-59663e0ac1ad',
+        'paris': 'photo-1502602898657-3e91760cbb34',
+        'new york': 'photo-1496442226666-8d4d0e62e6e9',
+        'hawaii': 'photo-1507876466758-bc54f384809c',
+        'fiji': 'photo-1575407293076-0c27d8013580',
+        'new zealand': 'photo-1469521669194-babb45599def',
+        'queensland': 'photo-1562672835-65dff94e05fe',
+        'gold coast': 'photo-1562672835-65dff94e05fe',
+        'perth': 'photo-1578662996442-48f60103fc96',
+        'tasmania': 'photo-1516117172878-fd2c41f4a759',
+        'hobart': 'photo-1516117172878-fd2c41f4a759'
+      };
+      var dest = (destination || '').toLowerCase();
+      for (var key in keywords) {
+        if (dest.indexOf(key) >= 0) return 'https://images.unsplash.com/' + keywords[key] + '?w=800';
+      }
+      return 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800';
+    }
+
     function updateCountdown() {
+      var container = document.getElementById('countdownContainer');
+      if (!container) return;
       var trips = Store.get('trips') || [];
       var now = new Date();
-      var nextTrip = null;
-      for (var i = 0; i < trips.length; i++) {
-        var tripDate = new Date(trips[i].startDate + 'T00:00:00');
-        if (tripDate > now && (!nextTrip || tripDate < new Date(nextTrip.startDate + 'T00:00:00'))) {
-          nextTrip = trips[i];
-        }
+
+      // Get upcoming trips sorted by date
+      var upcoming = trips.filter(function(t) {
+        return new Date(t.startDate + 'T00:00:00') > now;
+      }).sort(function(a, b) {
+        return new Date(a.startDate + 'T00:00:00') - new Date(b.startDate + 'T00:00:00');
+      }).slice(0, 3);
+
+      if (upcoming.length === 0) {
+        container.innerHTML = '<div class="countdown-card"><div class="countdown-body"><div class="countdown-title">No upcoming trips</div><div class="countdown-label">Add a trip to see the countdown</div></div></div>';
+        return;
       }
-      var countdownVal = document.querySelector('.countdown-value');
-      var countdownDest = document.querySelector('.countdown-destination');
-      if (countdownVal && nextTrip) {
-        var diff = Math.ceil((new Date(nextTrip.startDate + 'T00:00:00') - now) / (1000*60*60*24));
-        countdownVal.textContent = diff;
-        if (countdownDest) countdownDest.textContent = nextTrip.name;
+
+      var html = '<div class="countdown-cards">';
+      for (var i = 0; i < upcoming.length; i++) {
+        var trip = upcoming[i];
+        var diff = Math.ceil((new Date(trip.startDate + 'T00:00:00') - now) / (1000*60*60*24));
+        var imgUrl = trip.image || getUnsplashUrl(trip.destination || trip.name);
+        var isFirst = i === 0;
+        html += '<div class="countdown-card" style="cursor:pointer" onclick="navigateTo(\'trips\')">';
+        html += '<div class="countdown-image" style="background-image:url(\'' + imgUrl + '\');height:' + (isFirst ? '180' : '100') + 'px;background-size:cover;background-position:center;position:relative">';
+        html += '<div class="countdown-overlay">';
+        html += '<div class="countdown-destination">' + trip.name + '</div>';
+        html += '</div></div>';
+        html += '<div class="countdown-body" style="padding:' + (isFirst ? '2rem' : '1rem') + '">';
+        html += '<div class="countdown-title">Countdown</div>';
+        html += '<div class="countdown-value" style="font-size:' + (isFirst ? '3.5rem' : '2rem') + '">' + diff + '</div>';
+        html += '<div class="countdown-label">Days Until Departure</div>';
+        html += '</div></div>';
       }
+      html += '</div>';
+      container.innerHTML = html;
     }
 
     // =====================================================
