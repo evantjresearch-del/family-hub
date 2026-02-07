@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="Family Hub">
   <meta name="theme-color" content="#2563eb">
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="Family Hub with sports and family icons.png">
+  <link rel="apple-touch-icon" href="logo.png">
   <title>Family Hub</title>
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -27,7 +27,7 @@
     .header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid var(--border); padding: 1.25rem 0; margin-bottom: 3rem; position: sticky; top: 0; z-index: 50; backdrop-filter: blur(8px); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     .header-content { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; display: flex; justify-content: center; align-items: center; }
     .logo-container { display: flex; align-items: center; justify-content: center; }
-    .logo-image { height: 180px; width: auto; cursor: pointer; transition: transform 0.2s ease; }
+    .logo-image { height: 220px; width: auto; cursor: pointer; transition: transform 0.2s ease; }
     .logo-image:hover { transform: scale(1.02); }
     
     .quick-nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2.5rem; }
@@ -84,17 +84,6 @@
     .event-time { font-size: 0.8rem; color: var(--primary); font-weight: 600; margin-top: 0.25rem; }
     .event-title { font-weight: 600; margin-top: 0.25rem; }
     
-    .standings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
-    .standing-card { background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-    .standing-header { background: var(--primary); color: white; padding: 1rem 1.25rem; font-weight: 600; }
-    .standing-body { padding: 1rem 1.25rem; }
-    .standing-item { display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-light); }
-    .standing-item:last-child { border-bottom: none; }
-    .team-name { font-weight: 600; }
-    .team-record { color: var(--text-medium); font-size: 0.9rem; font-weight: 600; }
-    .next-game { background: var(--bg-lighter); padding: 1rem 1.25rem; border-top: 1px solid var(--border); font-size: 0.9rem; }
-    .next-game-label { font-weight: 600; margin-bottom: 0.25rem; }
-    .next-game-detail { color: var(--text-medium); }
     
     .map-card { background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); margin-bottom: 2rem; }
     .map-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-light); background: var(--bg-light); }
@@ -293,7 +282,7 @@
     .login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-white); z-index: 2000; display: flex; align-items: center; justify-content: center; }
     .login-overlay.hidden { display: none; }
     .login-card { text-align: center; padding: 3rem 2rem; max-width: 400px; width: 100%; }
-    .login-card .logo-image { height: 120px; margin-bottom: 2rem; }
+    .login-card .logo-image { height: 160px; margin-bottom: 2rem; }
     .login-title { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.5rem; }
     .login-subtitle { color: var(--text-medium); font-size: 0.95rem; margin-bottom: 2rem; }
     .pin-input { width: 200px; text-align: center; font-size: 2rem; letter-spacing: 0.75rem; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 8px; font-family: var(--font-body); outline: none; transition: border-color 0.2s; }
@@ -317,7 +306,7 @@
       .calendar-day { min-height: 90px; }
     }
     @media (max-width: 768px) {
-      .logo-image { height: 120px; }
+      .logo-image { height: 160px; }
       .page-title { font-size: 1.75rem; }
       .quick-nav { grid-template-columns: repeat(3, 1fr); }
       .form-row { grid-template-columns: 1fr; }
@@ -342,11 +331,6 @@
     .lightbox-close { position: absolute; top: 1rem; right: 1.5rem; color: white; font-size: 2rem; cursor: pointer; background: none; border: none; z-index: 3001; }
     .lightbox-caption { color: white; font-size: 1.1rem; font-weight: 600; text-align: center; margin-top: 1rem; }
 
-    /* Standings */
-    .standings-loading { text-align: center; padding: 2rem; color: var(--text-medium); }
-    .standings-refresh { background: none; border: 1px solid var(--border); padding: 0.35rem 0.75rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; color: var(--text-medium); }
-    .standings-refresh:hover { border-color: var(--primary); color: var(--primary); }
-    .standing-item.our-team { background: rgba(37, 99, 235, 0.05); }
 
     /* Trip editing */
     .trip-add-btn { background: var(--bg-light); border: 1px dashed var(--border); border-radius: 6px; padding: 0.75rem; text-align: center; cursor: pointer; color: var(--text-medium); font-weight: 600; transition: all 0.2s ease; margin-top: 1rem; width: 100%; }
@@ -370,7 +354,7 @@
   <!-- Login Overlay -->
   <div id="loginOverlay" class="login-overlay">
     <div class="login-card">
-      <img class="logo-image" src="Family Hub with sports and family icons.png" alt="Family Hub">
+      <img class="logo-image" src="logo.png" alt="Family Hub">
       <h2 class="login-title" id="loginTitle">Set Your PIN</h2>
       <p class="login-subtitle" id="loginSubtitle">Choose a 4-digit PIN to secure your Family Hub</p>
       <form id="loginForm" onsubmit="event.preventDefault(); submitPin();">
@@ -384,7 +368,7 @@
   <header class="header">
     <div class="header-content">
       <div class="logo-container">
-        <img class="logo-image" onclick="navigateTo('home')" src="Family Hub with sports and family icons.png" alt="Family Hub">
+        <img class="logo-image" onclick="navigateTo('home')" src="logo.png" alt="Family Hub">
       </div>
       <button class="btn-logout" onclick="logout()">Logout</button>
     </div>
@@ -454,17 +438,6 @@
             <button class="mini-calendar-btn" onclick="navigateTo('calendar')">View All →</button>
           </div>
           <div id="upcomingEventsHome"></div>
-        </div>
-      </div>
-
-      <!-- Sports Standings -->
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Live Sports Standings</h2>
-          <button class="standings-refresh" onclick="fetchAllStandings()">Refresh</button>
-        </div>
-        <div class="standings-grid" id="standingsGrid">
-          <div class="standings-loading">Loading live standings...</div>
         </div>
       </div>
 
@@ -2528,186 +2501,6 @@
     }
 
     // =====================================================
-    // LIVE SPORT STANDINGS
-    // =====================================================
-    function fetchWithTimeout(url, ms) {
-      return new Promise(function(resolve, reject) {
-        var timer = setTimeout(function() { reject(new Error('timeout')); }, ms);
-        fetch(url).then(function(r) { clearTimeout(timer); resolve(r); }).catch(function(e) { clearTimeout(timer); reject(e); });
-      });
-    }
-
-    function tryFetchStandings(espnUrl) {
-      // Try ESPN API directly first, then CORS proxies as fallback
-      var urls = [
-        espnUrl,
-        'https://api.allorigins.win/raw?url=' + encodeURIComponent(espnUrl),
-        'https://corsproxy.io/?' + encodeURIComponent(espnUrl),
-        'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(espnUrl)
-      ];
-
-      function tryNext(idx) {
-        if (idx >= urls.length) return Promise.reject(new Error('all sources failed'));
-        return fetchWithTimeout(urls[idx], 5000)
-          .then(function(r) {
-            if (!r.ok) throw new Error('status ' + r.status);
-            return r.json();
-          })
-          .catch(function() { return tryNext(idx + 1); });
-      }
-      return tryNext(0);
-    }
-
-    var standingsTeams = [
-      { key: 'nba', label: '\ud83c\udfc0 NBA - OKC Thunder', team: 'Oklahoma City Thunder',
-        url: 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings' },
-      { key: 'epl', label: '\u26bd EPL - Man United', team: 'Manchester United',
-        url: 'https://site.api.espn.com/apis/v2/sports/soccer/eng.1/standings' },
-      { key: 'nbl', label: '\ud83c\udfc0 NBL - JackJumpers', team: 'Tasmania JackJumpers',
-        url: 'https://site.api.espn.com/apis/v2/sports/basketball/nbl-australia/standings' }
-    ];
-
-    function getStandingsLastUpdated() {
-      var oldest = null;
-      for (var i = 0; i < standingsTeams.length; i++) {
-        var cached = localStorage.getItem('fh_standings_' + standingsTeams[i].key);
-        if (cached) {
-          try { var t = JSON.parse(cached).time; if (!oldest || t < oldest) oldest = t; } catch(e) {}
-        }
-      }
-      return oldest;
-    }
-
-    function formatLastUpdated(timestamp) {
-      if (!timestamp) return 'Using default data';
-      var d = new Date(timestamp);
-      var now = new Date();
-      var diffMs = now - d;
-      var diffMins = Math.floor(diffMs / 60000);
-      if (diffMins < 1) return 'Updated just now';
-      if (diffMins < 60) return 'Updated ' + diffMins + 'm ago';
-      var diffHrs = Math.floor(diffMins / 60);
-      if (diffHrs < 24) return 'Updated ' + diffHrs + 'h ago';
-      var diffDays = Math.floor(diffHrs / 24);
-      return 'Updated ' + diffDays + 'd ago';
-    }
-
-    function fetchAllStandings() {
-      var container = document.getElementById('standingsGrid');
-      if (!container) return;
-
-      // Show cached or fallback data immediately
-      var initialResults = {};
-      var hasCached = false;
-      standingsTeams.forEach(function(t) {
-        var cached = localStorage.getItem('fh_standings_' + t.key);
-        if (cached) {
-          try { initialResults[t.key] = JSON.parse(cached).data; hasCached = true; } catch(e) {}
-        }
-        if (!initialResults[t.key]) initialResults[t.key] = getFallbackStandings(t.key);
-      });
-      renderStandings(initialResults, standingsTeams);
-
-      // Try to fetch live data in background
-      var results = {};
-      var completed = 0;
-      var anySuccess = false;
-
-      standingsTeams.forEach(function(t) {
-        tryFetchStandings(t.url)
-          .then(function(data) {
-            results[t.key] = parseStandings(data, t);
-            localStorage.setItem('fh_standings_' + t.key, JSON.stringify({ data: results[t.key], time: Date.now() }));
-            anySuccess = true;
-          })
-          .catch(function() {
-            results[t.key] = initialResults[t.key];
-          })
-          .finally(function() {
-            completed++;
-            if (completed === standingsTeams.length && anySuccess) {
-              for (var k in initialResults) { if (!results[k]) results[k] = initialResults[k]; }
-              renderStandings(results, standingsTeams);
-            }
-          });
-      });
-    }
-
-    function parseStandings(data, teamConfig) {
-      try {
-        var entries = [];
-        var children = data.children || [];
-        for (var c = 0; c < children.length; c++) {
-          var se = (children[c].standings || {}).entries || [];
-          for (var i = 0; i < se.length; i++) {
-            var entry = se[i];
-            var team = entry.team || {};
-            var stats = entry.stats || [];
-            var record = '';
-            for (var s = 0; s < stats.length; s++) {
-              if (stats[s].name === 'overall') record = stats[s].displayValue || '';
-              if (stats[s].name === 'points' && !record) record = stats[s].displayValue + ' pts';
-            }
-            if (!record) {
-              var w, l;
-              for (var s = 0; s < stats.length; s++) {
-                if (stats[s].name === 'wins') w = stats[s].value;
-                if (stats[s].name === 'losses') l = stats[s].value;
-              }
-              if (w !== undefined && l !== undefined) record = w + '-' + l;
-            }
-            var isOurs = (team.displayName || '').toLowerCase().indexOf(teamConfig.team.split(' ')[0].toLowerCase()) >= 0;
-            entries.push({ rank: i + 1, name: team.displayName || 'Unknown', record: record || '--', isOurTeam: isOurs });
-          }
-        }
-        if (entries.length === 0 && data.standings) {
-          var se2 = data.standings.entries || [];
-          for (var i = 0; i < se2.length; i++) {
-            var entry = se2[i]; var team = entry.team || {};
-            var isOurs = (team.displayName || '').toLowerCase().indexOf(teamConfig.team.split(' ')[0].toLowerCase()) >= 0;
-            entries.push({ rank: i + 1, name: team.displayName || 'Unknown', record: '--', isOurTeam: isOurs });
-          }
-        }
-        // Find our team and get top entries around it
-        var ourIdx = -1;
-        for (var i = 0; i < entries.length; i++) { if (entries[i].isOurTeam) { ourIdx = i; break; } }
-        var display = entries.slice(0, 3);
-        if (ourIdx > 2) display.push(entries[ourIdx]);
-        return { entries: display, label: teamConfig.label };
-      } catch(e) {
-        return getFallbackStandings(teamConfig.key);
-      }
-    }
-
-    function getFallbackStandings(key) {
-      var f = {
-        nba: { entries: [ { rank: 1, name: 'Oklahoma City Thunder', record: '39-9', isOurTeam: true }, { rank: 2, name: 'Cleveland Cavaliers', record: '38-9', isOurTeam: false }, { rank: 3, name: 'Boston Celtics', record: '33-14', isOurTeam: false } ], label: '\ud83c\udfc0 NBA - OKC Thunder' },
-        epl: { entries: [ { rank: 1, name: 'Liverpool', record: '50 pts', isOurTeam: false }, { rank: 2, name: 'Arsenal', record: '43 pts', isOurTeam: false }, { rank: 13, name: 'Manchester United', record: '26 pts', isOurTeam: true } ], label: '\u26bd EPL - Man United' },
-        nbl: { entries: [ { rank: 1, name: 'Melbourne United', record: '15-4', isOurTeam: false }, { rank: 2, name: 'Sydney Kings', record: '13-6', isOurTeam: false }, { rank: 3, name: 'Tasmania JackJumpers', record: '12-7', isOurTeam: true } ], label: '\ud83c\udfc0 NBL - JackJumpers' }
-      };
-      return f[key] || { entries: [], label: key };
-    }
-
-    function renderStandings(results, teams) {
-      var container = document.getElementById('standingsGrid');
-      if (!container) return;
-      var html = '';
-      teams.forEach(function(t) {
-        var data = results[t.key] || getFallbackStandings(t.key);
-        var cached = localStorage.getItem('fh_standings_' + t.key);
-        var ts = cached ? (function() { try { return JSON.parse(cached).time; } catch(e) { return null; } })() : null;
-        html += '<div class="standing-card"><div class="standing-header">' + data.label + '</div><div class="standing-body">';
-        for (var i = 0; i < data.entries.length; i++) {
-          var e = data.entries[i];
-          var cls = e.isOurTeam ? ' our-team' : '';
-          html += '<div class="standing-item' + cls + '"><span class="team-name">' + e.rank + '. ' + e.name + '</span><span class="team-record">' + e.record + '</span></div>';
-        }
-        html += '</div><div class="next-game"><span class="next-game-detail" style="font-size:0.8rem;color:var(--text-light)">' + formatLastUpdated(ts) + '</span></div></div>';
-      });
-      container.innerHTML = html;
-    }
-
-    // =====================================================
     // FORM HANDLERS (with calendar writes)
     // =====================================================
     function addEvent(e) {
@@ -3177,7 +2970,6 @@
       renderMemories();
       renderTasks();
       renderTrips();
-      fetchAllStandings();
       updateCountdown();
       setTimeout(initMap, 500);
     }

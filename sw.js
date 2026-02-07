@@ -1,8 +1,8 @@
-var CACHE_NAME = 'family-hub-v1';
+var CACHE_NAME = 'family-hub-v2';
 var urlsToCache = [
   '/',
   '/index.html',
-  '/Family Hub with sports and family icons.png',
+  '/logo.png',
   '/manifest.json',
   'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;600;700&family=Merriweather:wght@400;700&display=swap',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
