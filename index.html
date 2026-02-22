@@ -473,10 +473,14 @@
       <div class="info-box">
         <div class="info-box-title">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-          iPhone Calendar Sync
+          iPhone Calendar Sync — "Family - the boys"
         </div>
-        <div class="info-box-text">
-          Subscribe to your Family Hub calendar in iPhone Calendar app. When you update events on your phone, they'll automatically sync here. Export your calendar using the button below to subscribe in iOS Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar.
+        <div class="info-box-text" style="line-height:1.8;">
+          <strong>Bring iPhone calendar events into Family Hub:</strong><br>
+          1. On iPhone: Open <strong>Calendar</strong> app → tap <strong>Calendars</strong> (bottom) → tap <strong>ⓘ</strong> next to "Family - the boys" → tap <strong>Share Calendar</strong> → choose <strong>Export</strong> → save the .ics file.<br>
+          2. Or on Mac: Open Calendar → right-click "Family - the boys" → <strong>Export…</strong> → save .ics.<br>
+          3. Click <strong>"Import iPhone Calendar"</strong> button below and select the .ics file — all events will be added here. Re-import at any time to pick up new entries (duplicates are skipped automatically).<br><br>
+          <strong>Send Family Hub events to iPhone:</strong> Click <strong>"Export .ics"</strong> → open the file on iPhone → tap <strong>Add All Events</strong>. Or subscribe via iOS Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar.
         </div>
       </div>
       
@@ -490,6 +494,10 @@
             </div>
             <button class="btn-secondary btn-small" onclick="changeMonth(-1)">← Prev</button>
             <button class="btn-secondary btn-small" onclick="changeMonth(1)">Next →</button>
+            <button class="btn-secondary btn-small" onclick="importCalendarICS()" title="Import events from iPhone Calendar .ics export">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:0.25rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Import iPhone Calendar
+            </button>
             <button class="btn-secondary btn-small" onclick="exportCalendar()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 0.25rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
               Export .ics
@@ -1549,7 +1557,14 @@
       if (target) target.classList.add('active');
       window.scrollTo(0, 0);
       if (pageId === 'trips') { renderTrips(); }
-      if (pageId === 'calendar') { renderCalendar(); }
+      if (pageId === 'calendar') { renderCalendar(); renderEventList(); }
+      if (pageId === 'home') {
+        renderUpcomingEvents();
+        updateCountdown();
+        renderHomePhotos();
+        // Leaflet map needs invalidateSize after the container becomes visible again
+        setTimeout(function() { if (worldMap) worldMap.invalidateSize(); }, 150);
+      }
     }
 
     function openModal(id) {
@@ -1967,6 +1982,137 @@
     function prevMiniMonth() { miniMonth--; if (miniMonth < 0) { miniMonth = 11; miniYear--; } renderMiniCalendar(); }
     function nextMiniMonth() { miniMonth++; if (miniMonth > 11) { miniMonth = 0; miniYear++; } renderMiniCalendar(); }
 
+    // =====================================================
+    // ICS IMPORT (iPhone Calendar sync)
+    // =====================================================
+    function importCalendarICS() {
+      var input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.ics,text/calendar';
+      input.onchange = function(ev) {
+        if (!ev.target.files || !ev.target.files.length) return;
+        var reader = new FileReader();
+        reader.onload = function(e) { parseAndImportICS(e.target.result); };
+        reader.onerror = function() { alert('Could not read the file. Please try again.'); };
+        reader.readAsText(ev.target.files[0]);
+      };
+      input.click();
+    }
+
+    function icsUnescape(str) {
+      return (str || '').replace(/\\n/g, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\').trim();
+    }
+
+    function parseICSDateTime(key, value) {
+      var v = (value || '').trim();
+      var date = '';
+      var time = '';
+      // Strip trailing Z (UTC) — treat as local for simplicity
+      if (v.charAt(v.length - 1) === 'Z') v = v.slice(0, -1);
+      // VALUE=DATE means date-only (no time component)
+      var isDateOnly = key.indexOf('VALUE=DATE') >= 0 && key.indexOf('DATE-TIME') < 0;
+      if (isDateOnly || (v.length === 8 && /^\d{8}$/.test(v))) {
+        date = v.substring(0,4) + '-' + v.substring(4,6) + '-' + v.substring(6,8);
+      } else if (v.indexOf('T') >= 0) {
+        var tIdx = v.indexOf('T');
+        var dp = v.substring(0, tIdx);
+        var tp = v.substring(tIdx + 1);
+        date = dp.substring(0,4) + '-' + dp.substring(4,6) + '-' + dp.substring(6,8);
+        if (tp.length >= 4) time = tp.substring(0,2) + ':' + tp.substring(2,4);
+      } else if (v.length === 8) {
+        date = v.substring(0,4) + '-' + v.substring(4,6) + '-' + v.substring(6,8);
+      }
+      return { date: date, time: time };
+    }
+
+    function guessCategoryFromText(text) {
+      var t = (text || '').toLowerCase();
+      if (/soccer|futsal|football|basketball|rowing|training|match|sport|swim|tennis|gym|cricket|footy/.test(t)) return 'sport';
+      if (/school|class|exam|teacher|term|study|homework|assignment|pam|subject/.test(t)) return 'school';
+      if (/doctor|dentist|medical|health|physio|hospital|appointment|checkup|gp|dr /.test(t)) return 'health';
+      if (/flight|travel|trip|hotel|holiday|departure|arrive|airport/.test(t)) return 'travel';
+      return 'family';
+    }
+
+    function parseAndImportICS(content) {
+      // Normalize line endings, then unfold RFC 5545 folded lines
+      var normalized = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n[ \t]/g, '');
+      var lineArr = normalized.split('\n');
+
+      var events = Store.get('events') || [];
+      var imported = 0;
+      var skipped = 0;
+      var inEvent = false;
+      var cur = {};
+
+      for (var i = 0; i < lineArr.length; i++) {
+        var line = lineArr[i];
+        if (line === 'BEGIN:VEVENT') {
+          inEvent = true;
+          cur = {};
+        } else if (line === 'END:VEVENT') {
+          if (inEvent && cur.title && cur.date) {
+            var isDup = events.some(function(ev) {
+              return ev.title === cur.title && ev.date === cur.date;
+            });
+            if (!isDup) {
+              var cat = cur.category || guessCategoryFromText(cur.title + ' ' + (cur.notes || ''));
+              events.push({
+                id: Store.getNextId('events') + imported,
+                title: cur.title,
+                date: cur.date,
+                time: cur.time || '',
+                category: cat,
+                notes: cur.notes || '',
+                recurring: false,
+                importedFromiPhone: true
+              });
+              imported++;
+            } else {
+              skipped++;
+            }
+          }
+          inEvent = false;
+          cur = {};
+        } else if (inEvent) {
+          var colonIdx = line.indexOf(':');
+          if (colonIdx <= 0) continue;
+          var key = line.substring(0, colonIdx).toUpperCase();
+          var val = line.substring(colonIdx + 1);
+          if (key === 'SUMMARY') {
+            cur.title = icsUnescape(val);
+          } else if (key.indexOf('DTSTART') === 0) {
+            var parsed = parseICSDateTime(key, val);
+            cur.date = parsed.date;
+            cur.time = parsed.time;
+          } else if (key === 'DESCRIPTION') {
+            cur.notes = icsUnescape(val);
+          } else if (key === 'CATEGORIES') {
+            var cats = val.toLowerCase();
+            if (/sport|soccer|football|basket/.test(cats)) cur.category = 'sport';
+            else if (/school|education/.test(cats)) cur.category = 'school';
+            else if (/health|medical|doctor/.test(cats)) cur.category = 'health';
+            else if (/travel|trip|holiday/.test(cats)) cur.category = 'travel';
+            else cur.category = 'family';
+          }
+        }
+      }
+
+      if (imported > 0) {
+        Store.set('events', events);
+        renderCalendar();
+        renderUpcomingEvents();
+        renderEventList();
+        var msg = imported + ' event' + (imported !== 1 ? 's' : '') + ' imported from iPhone Calendar!';
+        if (skipped > 0) msg += '\n(' + skipped + ' duplicate' + (skipped !== 1 ? 's' : '') + ' skipped)';
+        alert(msg);
+      } else if (skipped > 0) {
+        alert('All ' + skipped + ' event' + (skipped !== 1 ? 's' : '') + ' were already in the calendar (duplicates skipped).');
+      } else {
+        alert('No events found in the file.\n\nMake sure you are uploading the correct .ics file exported from your iPhone "Family - the boys" calendar.');
+      }
+    }
+
     function renderMiniCalendar() {
       var grid = document.getElementById('miniCalendarGrid');
       if (!grid) return;
@@ -1994,19 +2140,29 @@
       var container = document.getElementById('upcomingEventsHome') || document.getElementById('upcomingEvents');
       if (!container) return;
       var events = Store.get('events') || [];
-      var today = new Date().toISOString().split('T')[0];
-      var upcoming = events.filter(function(e) { return e.date >= today; }).sort(function(a,b) { return a.date.localeCompare(b.date); }).slice(0, 5);
+      // Calculate today and 7 days ahead (inclusive), at midnight local time
+      var now = new Date();
+      now.setHours(0, 0, 0, 0);
+      var sevenDaysLater = new Date(now);
+      sevenDaysLater.setDate(now.getDate() + 7);
+      var todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+      var endStr = sevenDaysLater.getFullYear() + '-' + String(sevenDaysLater.getMonth()+1).padStart(2,'0') + '-' + String(sevenDaysLater.getDate()).padStart(2,'0');
+      var upcoming = events.filter(function(e) {
+        return e.date >= todayStr && e.date <= endStr;
+      }).sort(function(a,b) { return a.date.localeCompare(b.date); });
+      var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       var html = '';
       for (var i = 0; i < upcoming.length; i++) {
         var e = upcoming[i];
         var d = new Date(e.date + 'T00:00:00');
+        var isToday = e.date === todayStr;
         html += '<div class="upcoming-event ' + (e.category || '') + '">';
-        html += '<div class="event-date">' + monthNames[d.getMonth()] + ' ' + d.getDate() + '</div>';
+        html += '<div class="event-date">' + (isToday ? 'Today' : dayNames[d.getDay()]) + ', ' + monthNames[d.getMonth()] + ' ' + d.getDate() + '</div>';
         if (e.time) html += '<div class="event-time">' + e.time + '</div>';
         html += '<div class="event-title">' + e.title + '</div></div>';
       }
-      if (upcoming.length === 0) html = '<p style="color: var(--text-medium); padding: 1rem;">No upcoming events</p>';
+      if (upcoming.length === 0) html = '<p style="color: var(--text-medium); padding: 1rem;">No events in the next 7 days</p>';
       container.innerHTML = html;
     }
 
@@ -2124,15 +2280,24 @@
       var container = document.getElementById('homePhotoGrid');
       if (!container) return;
       var photos = Store.get('photos') || [];
-      var recent = photos.filter(function(p) { return p.src; }).slice(0, 6);
+      // Only show photos with actual image data, sorted by most recent date
+      var recent = photos.filter(function(p) { return p.src; })
+        .sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); })
+        .slice(0, 9);
       var html = '';
       for (var i = 0; i < recent.length; i++) {
         var p = recent[i];
-        html += '<div class="home-photo-item" onclick="openLightbox(\'' + p.src.replace(/'/g,"\\'") + '\', \'' + p.description.replace(/'/g,"\\'") + '\')">';
-        html += '<img src="' + p.src + '" alt="' + p.description + '"></div>';
+        var safeSrc = p.src.replace(/'/g,"\\'");
+        var safeDesc = (p.description || '').replace(/'/g,"\\'");
+        html += '<div class="home-photo-item" onclick="openLightbox(\'' + safeSrc + '\', \'' + safeDesc + '\')">';
+        html += '<img src="' + p.src + '" alt="' + (p.description || '') + '"></div>';
       }
       if (recent.length === 0) {
-        html = '<p style="color: var(--text-medium); padding: 1rem;">Upload photos to see them here</p>';
+        html = '<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-medium);">' +
+          '<div style="font-size:2.5rem;margin-bottom:0.75rem;">📷</div>' +
+          '<p style="margin-bottom:0.75rem;">No photos yet — upload your first family photo!</p>' +
+          '<button class="btn btn-small" onclick="openModal(\'photoModal\')">Upload Photos</button>' +
+          '</div>';
       }
       container.innerHTML = html;
     }
@@ -2485,9 +2650,8 @@
       }
 
       // Fix Leaflet rendering when container wasn't fully visible at init
-      setTimeout(function() {
-        if (worldMap) worldMap.invalidateSize();
-      }, 200);
+      setTimeout(function() { if (worldMap) worldMap.invalidateSize(); }, 200);
+      setTimeout(function() { if (worldMap) worldMap.invalidateSize(); }, 800);
     }
 
     function geocodeDestination(destination, callback) {
@@ -2506,13 +2670,21 @@
     function addEvent(e) {
       e.preventDefault();
       var form = e.target;
-      var inputs = form.querySelectorAll('input, select, textarea');
-      var title = inputs[0].value;
-      var date = inputs[1].value;
-      var time = inputs[2].value;
-      var category = inputs[3].value;
+      var titleEl = form.querySelector('input[type="text"]');
+      var dateEl = form.querySelector('input[type="date"]');
+      var timeEl = form.querySelector('input[type="time"]');
+      var selects = form.querySelectorAll('select');
+      // selects[0] = recurrence type, selects[1] = category
+      var categoryEl = selects[selects.length - 1];
+      var recurringEl = form.querySelector('input[type="checkbox"]');
+      var title = titleEl ? titleEl.value : '';
+      var date = dateEl ? dateEl.value : '';
+      var time = timeEl ? timeEl.value : '';
+      var category = categoryEl ? categoryEl.value : 'family';
+      var recurring = recurringEl ? recurringEl.checked : false;
+      if (!title || !date) { alert('Please enter a title and date.'); return; }
       var events = Store.get('events') || [];
-      events.push({ id: Store.getNextId('events'), title: title, date: date, time: time, category: category, recurring: false });
+      events.push({ id: Store.getNextId('events'), title: title, date: date, time: time, category: category, recurring: recurring });
       Store.set('events', events);
       renderCalendar(); renderUpcomingEvents(); renderEventList();
       alert('Event added!');
