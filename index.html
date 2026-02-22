@@ -506,7 +506,7 @@
           </div>
         </div>
         <div class="calendar-grid" id="calendarGrid"></div>
-        <button class="btn" style="margin-top: 1.5rem;" onclick="openModal('eventModal')">Add Event</button>
+        <button class="btn" style="margin-top: 1.5rem;" onclick="openAddEventModal()">Add Event</button>
       </div>
 
       <!-- Upcoming Events List -->
@@ -884,7 +884,7 @@
           </div>
           <div class="form-group" id="matchResult" style="display: none;">
             <label class="form-label">Match Result (optional)</label>
-            <input type="text" class="form-input" placeholder="e.g. 3-1 Win">
+            <input type="text" id="sportResult" class="form-input" placeholder="e.g. 3-1 Win">
           </div>
           <div class="form-group">
             <label class="form-label">Location</label>
@@ -898,7 +898,7 @@
             <label class="form-label">Notes</label>
             <textarea class="form-textarea" id="sportNotes" placeholder="Performance notes, highlights..."></textarea>
           </div>
-          <button type="submit" class="btn" style="width: 100%;">Save Entry</button>
+          <button type="submit" id="sportSubmitBtn" class="btn" style="width: 100%;">Save Entry</button>
         </form>
       </div>
     </div>
@@ -922,13 +922,13 @@
           </div>
           <div class="form-group">
             <label class="form-label">Task Description</label>
-            <input type="text" class="form-input" placeholder="e.g. Buy groceries" required>
+            <input type="text" id="taskText" class="form-input" placeholder="e.g. Buy groceries" required>
           </div>
           <div class="form-group">
             <label class="form-label">Due Date (optional)</label>
-            <input type="date" class="form-input">
+            <input type="date" id="taskDueDate" class="form-input">
           </div>
-          <button type="submit" class="btn" style="width: 100%;">Add Task</button>
+          <button type="submit" id="taskSubmitBtn" class="btn" style="width: 100%;">Add Task</button>
         </form>
       </div>
     </div>
@@ -1957,11 +1957,11 @@
         var isToday = (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
         var dayEvents = events.filter(function(e) { return e.date === dateStr; });
         var hasEvent = dayEvents.length > 0;
-        html += '<div class="calendar-day' + (isToday ? ' today' : '') + (hasEvent ? ' has-event' : '') + '" onclick="openModal(\'eventModal\')">';
+        html += '<div class="calendar-day' + (isToday ? ' today' : '') + (hasEvent ? ' has-event' : '') + '" onclick="openAddEventModal(\'' + dateStr + '\')">';
         html += '<div class="calendar-day-number">' + day + '</div>';
         html += '<div class="calendar-events">';
         for (var ei = 0; ei < dayEvents.length; ei++) {
-          html += '<div class="calendar-event ' + (dayEvents[ei].category || '') + '">' + dayEvents[ei].title + '</div>';
+          html += '<div class="calendar-event ' + (dayEvents[ei].category || '') + '" onclick="event.stopPropagation();editEvent(' + dayEvents[ei].id + ')" style="cursor:pointer;" title="Click to edit">' + dayEvents[ei].title + '</div>';
         }
         html += '</div></div>';
       }
@@ -2292,7 +2292,8 @@
         html += '<div class="sport-entry"><div class="sport-entry-header"><div>';
         html += '<div class="sport-entry-title">' + icon + ' ' + e.title + '</div>';
         html += '<div class="sport-entry-athlete">' + e.participant + '</div></div>';
-        html += '<div style="display:flex;gap:0.5rem;align-items:start;"><span class="sport-badge">' + e.type + '</span>';
+        html += '<div style="display:flex;gap:0.5rem;align-items:start;flex-wrap:wrap;"><span class="sport-badge">' + e.type + '</span>';
+        html += '<button class="btn-small" onclick="editSportEntry(' + e.id + ')">Edit</button>';
         html += '<button class="btn-danger btn-small" onclick="deleteSportEntry(' + e.id + ')">Delete</button></div></div>';
         html += '<div class="sport-entry-details"><div class="sport-detail">\ud83d\udcc5 ' + e.date + '</div>';
         html += '<div class="sport-detail">\u23f0 ' + e.time + '</div></div>';
@@ -2433,9 +2434,10 @@
         for (var i = 0; i < tasks.length; i++) {
           var t = tasks[i];
           html += '<div class="task-item' + (t.completed ? ' completed' : '') + '">';
-          html += '<div class="task-checkbox" onclick="toggleTask(' + t.id + ',\'' + cat + '\')">' + (t.completed ? '\u2713' : '') + '</div>';
-          html += '<div class="task-text">' + t.text + (t.dueDate ? ' <span style="font-size:0.8rem;color:var(--text-medium);">(Due: ' + t.dueDate + ')</span>' : '') + '</div>';
-          html += '<button class="delete-btn" onclick="deleteTask(' + t.id + ',\'' + cat + '\')">\u00d7</button>';
+          html += '<div class="task-checkbox" onclick="toggleTask(' + t.id + ',\'' + cat + '\')">' + (t.completed ? '✓' : '') + '</div>';
+          html += '<div class="task-text" style="flex:1;">' + t.text + (t.dueDate ? ' <span style="font-size:0.8rem;color:var(--text-medium);">(Due: ' + t.dueDate + ')</span>' : '') + '</div>';
+          html += '<button class="btn-small" style="margin-right:0.3rem;" onclick="editTask(' + t.id + ',\'' + cat + '\')">Edit</button>';
+          html += '<button class="delete-btn" onclick="deleteTask(' + t.id + ',\'' + cat + '\')">×</button>';
           html += '</div>';
         }
         if (tasks.length === 0) html = '<p style="color: var(--text-medium); padding: 1rem;">No tasks</p>';
@@ -2758,6 +2760,24 @@
     // =====================================================
     var currentEditEventId = null;
 
+    function openAddEventModal(dateStr) {
+      // Reset to "add new" state
+      currentEditEventId = null;
+      document.getElementById('eventModal').querySelector('.modal-title').textContent = 'Add Event';
+      document.getElementById('eventSubmitBtn').textContent = 'Save Event';
+      document.getElementById('eventTitle').value = '';
+      document.getElementById('eventDate').value = dateStr || '';
+      document.getElementById('eventTime').value = '';
+      document.getElementById('eventLocation').value = '';
+      document.getElementById('eventCategory').value = 'family';
+      document.getElementById('recurringEvent').checked = false;
+      document.getElementById('recurringOptions').style.display = 'none';
+      document.getElementById('eventRecurrence').value = 'weekly';
+      document.getElementById('eventNotes').value = '';
+      document.getElementById('eventLink').value = '';
+      openModal('eventModal');
+    }
+
     function editEvent(id) {
       var events = Store.get('events') || [];
       var ev = null;
@@ -2895,30 +2915,42 @@
 
     function resizeImage(file, maxWidth, callback) {
       var reader = new FileReader();
-      reader.onerror = function() {
-        console.error('FileReader failed for: ' + file.name);
-        callback(null);
-      };
+      reader.onerror = function() { callback(null); };
       reader.onload = function(ev) {
+        var originalDataUrl = ev.target.result;
         var img = new Image();
-        img.onerror = function() {
-          console.error('Image load failed for: ' + file.name);
-          callback(null);
-        };
+        img.onerror = function() { callback(null); };
         img.onload = function() {
           try {
+            // Cap both dimensions — portrait shots on iPhone can be very tall
+            var scale = Math.min(1, maxWidth / img.width, maxWidth / img.height);
+            // iOS canvas pixel limit is ~16M px; stay well under it at 2MP
+            var MAX_PX = 2000000;
+            if (img.width * img.height * scale * scale > MAX_PX) {
+              scale = Math.sqrt(MAX_PX / (img.width * img.height));
+            }
+            var w = Math.max(1, Math.round(img.width * scale));
+            var h = Math.max(1, Math.round(img.height * scale));
+
             var canvas = document.createElement('canvas');
-            var scale = Math.min(1, maxWidth / img.width);
-            canvas.width = img.width * scale;
-            canvas.height = img.height * scale;
-            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-            callback(canvas.toDataURL('image/jpeg', 0.7));
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            var dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+
+            // Detect blank/failed canvas (iOS returns a tiny data URL when canvas fails)
+            if (!dataUrl || dataUrl.length < 1000) {
+              // Fall back to original un-resized data (still saves the photo)
+              callback(originalDataUrl);
+              return;
+            }
+            callback(dataUrl);
           } catch(err) {
-            console.error('Canvas resize failed: ' + err.message);
-            callback(null);
+            // Any canvas error — fall back to original so the photo still saves
+            callback(originalDataUrl || null);
           }
         };
-        img.src = ev.target.result;
+        img.src = originalDataUrl;
       };
       reader.readAsDataURL(file);
     }
@@ -3041,6 +3073,31 @@
       e.target.reset(); closeModal('tripModal');
     }
 
+    var currentEditSportId = null;
+
+    function editSportEntry(id) {
+      var entries = Store.get('sport_entries') || [];
+      var entry = null;
+      for (var i = 0; i < entries.length; i++) if (entries[i].id === id) { entry = entries[i]; break; }
+      if (!entry) return;
+      currentEditSportId = id;
+      document.getElementById('sportParticipant').value = entry.participant ? entry.participant.toLowerCase() : '';
+      document.getElementById('sportSport').value = entry.sport || '';
+      document.getElementById('sportType').value = entry.type || '';
+      toggleSportFields();
+      var times = (entry.time || '').split(' - ');
+      document.getElementById('sportStartDate').value = entry.date || '';
+      document.getElementById('sportStartTime').value = times[0] || '';
+      document.getElementById('sportEndTime').value = times[1] || '';
+      document.getElementById('sportTitle').value = entry.title || '';
+      document.getElementById('sportResult').value = entry.result || '';
+      document.getElementById('sportLocation').value = entry.location || '';
+      document.getElementById('sportNotes').value = entry.notes || '';
+      document.getElementById('sportModal').querySelector('.modal-title').textContent = 'Edit Sport Entry';
+      document.getElementById('sportSubmitBtn').textContent = 'Update Entry';
+      openModal('sportModal');
+    }
+
     function addSportEntry(e) {
       e.preventDefault();
       var participant = document.getElementById('sportParticipant');
@@ -3048,82 +3105,135 @@
       var entryType = document.getElementById('sportType');
       var startDate = document.getElementById('sportStartDate');
       var startTime = document.getElementById('sportStartTime');
-      var endDate = document.getElementById('sportEndDate');
       var endTime = document.getElementById('sportEndTime');
       var title = document.getElementById('sportTitle');
       var location = document.getElementById('sportLocation');
       var addToCal = document.getElementById('sportAddToCalendar');
       var notes = document.getElementById('sportNotes');
-      var matchResultEl = document.querySelector('#matchResult input');
+      var resultEl = document.getElementById('sportResult');
 
-      var sportIcons = { soccer: '\u26bd', futsal: '\u26bd', basketball: '\ud83c\udfc0', rowing: '\ud83d\udea3', 'table-tennis': '\ud83c\udfd3', golf: '\u26f3' };
-      var sportIcon = sportIcons[sport.value] || '\ud83c\udfc5';
+      var sportIcons = { soccer: '⚽', futsal: '⚽', basketball: '🏀', rowing: '🚣', 'table-tennis': '🏓', golf: '⛳' };
+      var sportIcon = sportIcons[sport.value] || '🏅';
       var participantName = participant.options[participant.selectedIndex].text;
       var sportName = sport.options[sport.selectedIndex].text;
       var entryTitle = title.value || (participantName + ' - ' + sportName + ' ' + entryType.options[entryType.selectedIndex].text);
       var timeRange = startTime.value + (endTime.value ? ' - ' + endTime.value : '');
 
       var entries = Store.get('sport_entries') || [];
+
+      if (currentEditSportId !== null) {
+        for (var i = 0; i < entries.length; i++) {
+          if (entries[i].id === currentEditSportId) {
+            entries[i].title = entryTitle; entries[i].date = startDate.value;
+            entries[i].time = timeRange; entries[i].type = entryType.value;
+            entries[i].participant = participantName; entries[i].sport = sport.value;
+            entries[i].notes = notes.value || ''; entries[i].result = resultEl ? resultEl.value : '';
+            entries[i].location = location.value || '';
+            break;
+          }
+        }
+        currentEditSportId = null;
+        Store.set('sport_entries', entries);
+        renderSportEntries();
+        document.getElementById('sportModal').querySelector('.modal-title').textContent = 'Add Sport Entry';
+        document.getElementById('sportSubmitBtn').textContent = 'Save Entry';
+        e.target.reset();
+        document.getElementById('sportAddToCalendar').checked = true;
+        document.getElementById('matchResult').style.display = 'none';
+        closeModal('sportModal');
+        return;
+      }
+
       entries.unshift({
         id: Store.getNextId('sport_entries'),
         title: entryTitle, date: startDate.value, time: timeRange, type: entryType.value,
-        participant: participantName, sport: sport.value,
-        notes: notes.value || '', result: matchResultEl ? matchResultEl.value : ''
+        participant: participantName, sport: sport.value, location: location.value || '',
+        notes: notes.value || '', result: resultEl ? resultEl.value : ''
       });
       Store.set('sport_entries', entries);
       renderSportEntries();
 
       if (addToCal && addToCal.checked) {
         var events = Store.get('events') || [];
-        events.push({
-          id: Store.getNextId('events'),
-          title: sportIcon + ' ' + entryTitle,
-          date: startDate.value, time: timeRange, category: 'sport', recurring: false,
-          location: location.value || '', participant: participantName, sport: sportName
-        });
+        events.push({ id: Store.getNextId('events'), title: sportIcon + ' ' + entryTitle, date: startDate.value, time: timeRange, category: 'sport', recurring: false, location: location.value || '' });
         Store.set('events', events);
         renderCalendar(); renderUpcomingEvents();
       }
 
-      alert('Sport entry added!' + (addToCal && addToCal.checked ? ' Also added to calendar.' : ''));
       e.target.reset();
       document.getElementById('sportAddToCalendar').checked = true;
       document.getElementById('matchResult').style.display = 'none';
       closeModal('sportModal');
     }
 
+    var currentEditTaskId = null;
+    var currentEditTaskCat = null;
+
+    function editTask(id, cat) {
+      var allTasks = Store.get('tasks') || { family: [], school: [], sport: [] };
+      var tasks = allTasks[cat] || [];
+      var task = null;
+      for (var i = 0; i < tasks.length; i++) if (tasks[i].id === id) { task = tasks[i]; break; }
+      if (!task) return;
+      currentEditTaskId = id;
+      currentEditTaskCat = cat;
+      document.getElementById('taskCategory').value = cat;
+      document.getElementById('taskText').value = task.text || '';
+      document.getElementById('taskDueDate').value = task.dueDate || '';
+      document.getElementById('taskModal').querySelector('.modal-title').textContent = 'Edit Task';
+      document.getElementById('taskSubmitBtn').textContent = 'Update Task';
+      openModal('taskModal');
+    }
+
     function addTask(e) {
       e.preventDefault();
-      var form = e.target;
       var category = document.getElementById('taskCategory').value;
-      var text = form.querySelectorAll('input[type="text"]')[0].value;
-      var dueDateInput = form.querySelectorAll('input[type="date"]')[0];
-      var dueDate = dueDateInput ? dueDateInput.value : '';
+      var text = document.getElementById('taskText').value.trim();
+      var dueDate = document.getElementById('taskDueDate').value;
 
       var allTasks = Store.get('tasks') || { family: [], school: [], sport: [] };
       if (!allTasks[category]) allTasks[category] = [];
-      var maxId = 0;
-      for (var i = 0; i < allTasks[category].length; i++) {
-        if (allTasks[category][i].id > maxId) maxId = allTasks[category][i].id;
+
+      if (currentEditTaskId !== null && currentEditTaskCat !== null) {
+        var editCat = currentEditTaskCat;
+        var editTasks = allTasks[editCat] || [];
+        // If category changed, remove from old and add to new
+        if (editCat !== category) {
+          allTasks[editCat] = editTasks.filter(function(t) { return t.id !== currentEditTaskId; });
+          if (!allTasks[category]) allTasks[category] = [];
+          var maxId = 0;
+          for (var j = 0; j < allTasks[category].length; j++) if (allTasks[category][j].id > maxId) maxId = allTasks[category][j].id;
+          allTasks[category].unshift({ id: maxId + 1, text: text, completed: false, dueDate: dueDate });
+        } else {
+          for (var i = 0; i < editTasks.length; i++) {
+            if (editTasks[i].id === currentEditTaskId) {
+              editTasks[i].text = text; editTasks[i].dueDate = dueDate; break;
+            }
+          }
+        }
+        currentEditTaskId = null; currentEditTaskCat = null;
+        Store.set('tasks', allTasks);
+        renderTasks();
+        document.getElementById('taskModal').querySelector('.modal-title').textContent = 'Add Task';
+        document.getElementById('taskSubmitBtn').textContent = 'Add Task';
+        e.target.reset(); closeModal('taskModal');
+        return;
       }
+
+      var maxId = 0;
+      for (var i = 0; i < allTasks[category].length; i++) if (allTasks[category][i].id > maxId) maxId = allTasks[category][i].id;
       allTasks[category].unshift({ id: maxId + 1, text: text, completed: false, dueDate: dueDate });
       Store.set('tasks', allTasks);
       renderTasks(category);
 
-      // Write to calendar if due date set
       if (dueDate) {
         var events = Store.get('events') || [];
-        events.push({
-          id: Store.getNextId('events'),
-          title: '\u2705 Task: ' + text,
-          date: dueDate, time: '', category: category, recurring: false
-        });
+        events.push({ id: Store.getNextId('events'), title: '✅ Task: ' + text, date: dueDate, time: '', category: category, recurring: false });
         Store.set('events', events);
         renderCalendar(); renderUpcomingEvents();
       }
 
-      alert('Task added to ' + category + '!' + (dueDate ? ' Added to calendar.' : ''));
-      form.reset(); closeModal('taskModal');
+      e.target.reset(); closeModal('taskModal');
     }
 
     // =====================================================
