@@ -599,31 +599,31 @@
         <form onsubmit="addEvent(event)">
           <div class="form-group">
             <label class="form-label">Event Title</label>
-            <input type="text" class="form-input" placeholder="e.g. Finn's Soccer Match" required>
+            <input type="text" id="eventTitle" class="form-input" placeholder="e.g. Finn's Soccer Match" required>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Date</label>
-              <input type="date" class="form-input" required>
+              <input type="date" id="eventDate" class="form-input" required>
             </div>
             <div class="form-group">
               <label class="form-label">Time</label>
-              <input type="time" class="form-input">
+              <input type="time" id="eventTime" class="form-input">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Location</label>
-            <input type="text" class="form-input" placeholder="e.g. Glenorchy Soccer Fields">
+            <input type="text" id="eventLocation" class="form-input" placeholder="e.g. Glenorchy Soccer Fields">
           </div>
-          
+
           <div class="form-checkbox-group">
             <input type="checkbox" id="recurringEvent" class="form-checkbox">
             <label for="recurringEvent" class="form-label" style="margin: 0;">🔁 Recurring Event</label>
           </div>
-          
+
           <div class="form-group" id="recurringOptions" style="display: none;">
             <label class="form-label">Repeat Frequency</label>
-            <select class="form-select">
+            <select id="eventRecurrence" class="form-select">
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="biweekly">Bi-weekly</option>
@@ -631,10 +631,10 @@
               <option value="yearly">Yearly</option>
             </select>
           </div>
-          
+
           <div class="form-group">
             <label class="form-label">Category</label>
-            <select class="form-select">
+            <select id="eventCategory" class="form-select">
               <option value="family">👨‍👩‍👦 Family</option>
               <option value="sport">⚽ Sport</option>
               <option value="school">📚 School</option>
@@ -642,20 +642,18 @@
               <option value="travel">✈️ Travel</option>
             </select>
           </div>
-          
+
           <div class="form-group">
             <label class="form-label">Notes</label>
-            <textarea class="form-textarea" placeholder="Additional details..."></textarea>
+            <textarea id="eventNotes" class="form-textarea" placeholder="Additional details..."></textarea>
           </div>
-          
+
           <div class="form-group">
-            <label class="form-label">Links & Attachments</label>
-            <input type="url" class="form-input" placeholder="https://example.com" style="margin-bottom: 0.5rem;">
-            <input type="file" class="form-input" multiple style="padding: 0.5rem;">
-            <p style="font-size: 0.85rem; color: var(--text-medium); margin-top: 0.5rem;">Add relevant links or attach documents</p>
+            <label class="form-label">Link (optional)</label>
+            <input type="url" id="eventLink" class="form-input" placeholder="https://example.com">
           </div>
-          
-          <button type="submit" class="btn" style="width: 100%;">Save Event</button>
+
+          <button type="submit" id="eventSubmitBtn" class="btn" style="width: 100%;">Save Event</button>
         </form>
       </div>
     </div>
@@ -791,23 +789,34 @@
               <input type="date" class="form-input" id="tripEndDate" required>
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Budget (optional)</label>
-            <input type="number" class="form-input" id="tripBudget" placeholder="e.g. 5000">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Budget (optional)</label>
+              <input type="number" class="form-input" id="tripBudget" placeholder="e.g. 5000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-select" id="tripStatus">
+                <option value="upcoming">Upcoming</option>
+                <option value="visited">Visited</option>
+              </select>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">Notes (optional)</label>
             <textarea class="form-textarea" id="tripNotes" placeholder="General trip notes..."></textarea>
           </div>
-          <div class="form-checkbox-group">
-            <input type="checkbox" id="tripAddToCalendar" class="form-checkbox" checked>
-            <label for="tripAddToCalendar" class="form-label" style="margin: 0;">Add to Family Calendar</label>
+          <div id="tripNewOnlyOptions">
+            <div class="form-checkbox-group">
+              <input type="checkbox" id="tripAddToCalendar" class="form-checkbox" checked>
+              <label for="tripAddToCalendar" class="form-label" style="margin: 0;">Add to Family Calendar</label>
+            </div>
+            <div class="form-checkbox-group">
+              <input type="checkbox" id="tripAddToMap" class="form-checkbox" checked>
+              <label for="tripAddToMap" class="form-label" style="margin: 0;">Add to Travel Map</label>
+            </div>
           </div>
-          <div class="form-checkbox-group">
-            <input type="checkbox" id="tripAddToMap" class="form-checkbox" checked>
-            <label for="tripAddToMap" class="form-label" style="margin: 0;">Add to Travel Map</label>
-          </div>
-          <button type="submit" class="btn" style="width: 100%;">Create Trip</button>
+          <button type="submit" id="tripSubmitBtn" class="btn" style="width: 100%;">Create Trip</button>
         </form>
       </div>
     </div>
@@ -1718,13 +1727,15 @@
           req.onerror = function() { callback([]); };
         });
       },
-      save: function(photos) {
+      save: function(photos, callback) {
         this.open(function(db) {
-          if (!db) return;
+          if (!db) { if (callback) callback(); return; }
           var tx = db.transaction('photos', 'readwrite');
           var store = tx.objectStore('photos');
           store.clear();
           for (var i = 0; i < photos.length; i++) store.put(photos[i]);
+          tx.oncomplete = function() { if (callback) callback(); };
+          tx.onerror = function() { console.error('PhotoDB: save failed'); if (callback) callback(); };
         });
       }
     };
@@ -2207,14 +2218,29 @@
         var e = monthEvents[i];
         html += '<div class="event-item">';
         html += '<div class="event-item-header"><span class="event-item-title">' + e.title + '</span>';
-        html += '<button class="btn-danger btn-small" onclick="deleteEvent(' + e.id + ')">Delete</button></div>';
-        html += '<div class="event-item-details">' + e.date + (e.time ? ' at ' + e.time : '') + '</div>';
+        html += '<div style="display:flex;gap:0.4rem;">';
+        html += '<button class="btn-small" onclick="editEvent(' + e.id + ')">Edit</button>';
+        html += '<button class="btn-danger btn-small" onclick="deleteEvent(' + e.id + ')">Delete</button>';
+        html += '</div></div>';
+        html += '<div class="event-item-details">' + e.date + (e.time ? ' at ' + e.time : '') + (e.location ? ' · ' + e.location : '') + '</div>';
         html += '<div class="event-item-meta"><span class="event-badge">' + (e.category || 'general') + '</span>';
         if (e.recurring) html += '<span class="event-badge recurring">Recurring</span>';
-        html += '</div></div>';
+        html += '</div>';
+        if (e.notes) html += '<div style="margin-top:0.5rem;font-size:0.875rem;color:var(--text-medium);">' + linkify(e.notes) + '</div>';
+        if (e.link) html += '<div style="margin-top:0.4rem;font-size:0.875rem;"><a href="' + e.link + '" target="_blank" rel="noopener noreferrer" style="color:var(--primary);">' + e.link + '</a></div>';
+        html += '</div>';
       }
       if (monthEvents.length === 0) html = '<p style="color: var(--text-medium);">No events this month</p>';
       container.innerHTML = html;
+    }
+
+    // =====================================================
+    // UTILITY: auto-link URLs in any text
+    // =====================================================
+    function linkify(text) {
+      if (!text) return '';
+      var safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return safe.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:var(--primary);word-break:break-all;">$1</a>');
     }
 
     // =====================================================
@@ -2365,9 +2391,10 @@
       if (!confirm('Delete this photo?')) return;
       PhotoDB.getAll(function(photos) {
         photos = photos.filter(function(p) { return p.id !== id; });
-        PhotoDB.save(photos);
-        renderPhotos();
-        renderHomePhotos();
+        PhotoDB.save(photos, function() {
+          renderPhotos();
+          renderHomePhotos();
+        });
       });
     }
 
@@ -2383,7 +2410,7 @@
         var m = memories[i];
         html += '<div class="memory-item"><div class="memory-date">' + m.date + '</div>';
         html += '<div class="memory-content"><div class="memory-title">' + m.title + '</div>';
-        html += '<div class="memory-text">' + m.text + '</div>';
+        html += '<div class="memory-text">' + linkify(m.text) + '</div>';
         html += '<button class="btn-danger btn-small" style="margin-top:0.5rem;" onclick="deleteMemory(' + m.id + ')">Delete</button>';
         html += '</div></div>';
       }
@@ -2472,7 +2499,10 @@
       html += '<div>\u23f1 ' + days + ' days</div>';
       if (trip.budget) html += '<div>\ud83d\udcb0 Budget: $' + trip.budget.toLocaleString() + '</div>';
       html += '</div></div>';
-      html += '<button class="btn-danger btn-small" onclick="deleteTrip(' + tripId + ')">Delete Trip</button></div>';
+      html += '<div style="display:flex;gap:0.5rem;">';
+      html += '<button class="btn btn-small" onclick="editTrip(' + tripId + ')">Edit Trip</button>';
+      html += '<button class="btn-danger btn-small" onclick="deleteTrip(' + tripId + ')">Delete Trip</button>';
+      html += '</div></div>';
 
       // Tabs
       html += '<div class="trip-tabs">';
@@ -2509,7 +2539,7 @@
       for (var di = 0; di < docs.length; di++) {
         html += '<div class="trip-doc-item"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
         html += '<div style="flex:1;"><div style="font-weight:600;">' + docs[di].name + '</div>';
-        html += '<div style="font-size:0.85rem;color:var(--text-medium);">' + docs[di].detail + '</div></div></div>';
+        html += '<div style="font-size:0.85rem;color:var(--text-medium);">' + linkify(docs[di].detail) + '</div></div></div>';
       }
       html += '</div>';
       html += '<button class="trip-add-btn" onclick="addTripDocument(' + tripId + ')">+ Add Document</button>';
@@ -2549,7 +2579,7 @@
       var notes = trip.notes || [];
       for (var ni = 0; ni < notes.length; ni++) {
         html += '<div class="trip-note-item"><div style="font-weight:600;margin-bottom:0.5rem;">' + notes[ni].title + '</div>';
-        html += '<div style="color:var(--text-medium);">' + notes[ni].text + '</div></div>';
+        html += '<div style="color:var(--text-medium);">' + linkify(notes[ni].text) + '</div></div>';
       }
       html += '<button class="trip-add-btn" onclick="addTripNote(' + tripId + ')">+ Add Note</button>';
       html += '</div>';
@@ -2726,28 +2756,62 @@
     // =====================================================
     // FORM HANDLERS (with calendar writes)
     // =====================================================
+    var currentEditEventId = null;
+
+    function editEvent(id) {
+      var events = Store.get('events') || [];
+      var ev = null;
+      for (var i = 0; i < events.length; i++) if (events[i].id === id) { ev = events[i]; break; }
+      if (!ev) return;
+      currentEditEventId = id;
+      document.getElementById('eventTitle').value = ev.title || '';
+      document.getElementById('eventDate').value = ev.date || '';
+      document.getElementById('eventTime').value = ev.time || '';
+      document.getElementById('eventLocation').value = ev.location || '';
+      document.getElementById('eventCategory').value = ev.category || 'family';
+      document.getElementById('recurringEvent').checked = !!ev.recurring;
+      document.getElementById('recurringOptions').style.display = ev.recurring ? 'block' : 'none';
+      document.getElementById('eventRecurrence').value = ev.recurrenceType || 'weekly';
+      document.getElementById('eventNotes').value = ev.notes || '';
+      document.getElementById('eventLink').value = ev.link || '';
+      document.getElementById('eventModal').querySelector('.modal-title').textContent = 'Edit Event';
+      document.getElementById('eventSubmitBtn').textContent = 'Update Event';
+      openModal('eventModal');
+    }
+
     function addEvent(e) {
       e.preventDefault();
-      var form = e.target;
-      var titleEl = form.querySelector('input[type="text"]');
-      var dateEl = form.querySelector('input[type="date"]');
-      var timeEl = form.querySelector('input[type="time"]');
-      var selects = form.querySelectorAll('select');
-      // selects[0] = recurrence type, selects[1] = category
-      var categoryEl = selects[selects.length - 1];
-      var recurringEl = form.querySelector('input[type="checkbox"]');
-      var title = titleEl ? titleEl.value : '';
-      var date = dateEl ? dateEl.value : '';
-      var time = timeEl ? timeEl.value : '';
-      var category = categoryEl ? categoryEl.value : 'family';
-      var recurring = recurringEl ? recurringEl.checked : false;
+      var title = document.getElementById('eventTitle').value.trim();
+      var date = document.getElementById('eventDate').value;
+      var time = document.getElementById('eventTime').value;
+      var location = document.getElementById('eventLocation').value.trim();
+      var category = document.getElementById('eventCategory').value;
+      var recurring = document.getElementById('recurringEvent').checked;
+      var recurrenceType = document.getElementById('eventRecurrence').value;
+      var notes = document.getElementById('eventNotes').value.trim();
+      var link = document.getElementById('eventLink').value.trim();
       if (!title || !date) { alert('Please enter a title and date.'); return; }
+
       var events = Store.get('events') || [];
-      events.push({ id: Store.getNextId('events'), title: title, date: date, time: time, category: category, recurring: recurring });
+      if (currentEditEventId !== null) {
+        for (var i = 0; i < events.length; i++) {
+          if (events[i].id === currentEditEventId) {
+            events[i].title = title; events[i].date = date; events[i].time = time;
+            events[i].location = location; events[i].category = category;
+            events[i].recurring = recurring; events[i].recurrenceType = recurrenceType;
+            events[i].notes = notes; events[i].link = link;
+            break;
+          }
+        }
+      } else {
+        events.push({ id: Store.getNextId('events'), title: title, date: date, time: time, location: location, category: category, recurring: recurring, recurrenceType: recurrenceType, notes: notes, link: link });
+      }
       Store.set('events', events);
       renderCalendar(); renderUpcomingEvents(); renderEventList();
-      alert('Event added!');
-      form.reset(); closeModal('eventModal');
+      currentEditEventId = null;
+      document.getElementById('eventModal').querySelector('.modal-title').textContent = 'Add Event';
+      document.getElementById('eventSubmitBtn').textContent = 'Save Event';
+      e.target.reset(); closeModal('eventModal');
     }
 
     function addHealthRecord(e) {
@@ -2811,16 +2875,17 @@
               }
               processed++;
               if (processed === total) {
-                PhotoDB.save(photos);
-                renderPhotos(); renderHomePhotos();
-                if (failed > 0) {
-                  alert((total - failed) + ' photo(s) uploaded. ' + failed + ' failed to process.');
-                } else {
-                  alert(total + ' photo(s) uploaded!');
-                }
-                e.target.reset();
-                document.getElementById('photoPreview').innerHTML = '';
-                closeModal('photoModal');
+                PhotoDB.save(photos, function() {
+                  renderPhotos(); renderHomePhotos();
+                  if (failed > 0) {
+                    alert((total - failed) + ' photo(s) uploaded. ' + failed + ' failed to process.');
+                  } else {
+                    alert(total + ' photo(s) uploaded!');
+                  }
+                  e.target.reset();
+                  document.getElementById('photoPreview').innerHTML = '';
+                  closeModal('photoModal');
+                });
               }
             });
           })(files[i], i);
@@ -2874,6 +2939,28 @@
       form.reset(); closeModal('memoryModal');
     }
 
+    var currentEditTripId = null;
+
+    function editTrip(id) {
+      var trips = Store.get('trips') || [];
+      var trip = null;
+      for (var i = 0; i < trips.length; i++) if (trips[i].id === id) { trip = trips[i]; break; }
+      if (!trip) return;
+      currentEditTripId = id;
+      document.getElementById('tripName').value = trip.name || '';
+      document.getElementById('tripDestination').value = trip.destination || '';
+      document.getElementById('tripStartDate').value = trip.startDate || '';
+      document.getElementById('tripEndDate').value = trip.endDate || '';
+      document.getElementById('tripBudget').value = trip.budget || '';
+      document.getElementById('tripStatus').value = trip.status || 'upcoming';
+      var notesText = trip.notes && trip.notes.length > 0 ? trip.notes[0].text : '';
+      document.getElementById('tripNotes').value = notesText;
+      document.getElementById('tripNewOnlyOptions').style.display = 'none';
+      document.getElementById('tripModal').querySelector('.modal-title').textContent = 'Edit Trip';
+      document.getElementById('tripSubmitBtn').textContent = 'Update Trip';
+      openModal('tripModal');
+    }
+
     function addTrip(e) {
       e.preventDefault();
       var name = document.getElementById('tripName').value;
@@ -2881,31 +2968,57 @@
       var startDate = document.getElementById('tripStartDate').value;
       var endDate = document.getElementById('tripEndDate').value;
       var budget = parseFloat(document.getElementById('tripBudget').value) || 0;
+      var status = document.getElementById('tripStatus').value || 'upcoming';
       var notes = document.getElementById('tripNotes').value;
+
+      var trips = Store.get('trips') || [];
+
+      if (currentEditTripId !== null) {
+        for (var i = 0; i < trips.length; i++) {
+          if (trips[i].id === currentEditTripId) {
+            trips[i].name = name; trips[i].destination = dest;
+            trips[i].startDate = startDate; trips[i].endDate = endDate;
+            trips[i].budget = budget; trips[i].status = status;
+            if (notes) {
+              if (trips[i].notes && trips[i].notes.length > 0) trips[i].notes[0].text = notes;
+              else trips[i].notes = [{ title: 'Trip Notes', text: notes }];
+            }
+            break;
+          }
+        }
+        Store.set('trips', trips);
+        // Re-geocode if destination may have changed
+        geocodeDestination(dest, function(coords) {
+          var ts = Store.get('trips') || [];
+          for (var j = 0; j < ts.length; j++) {
+            if (ts[j].id === currentEditTripId && coords) { ts[j].coords = coords; break; }
+          }
+          Store.set('trips', ts);
+          renderTrips(); initMap(); initTripsMap();
+        });
+        currentEditTripId = null;
+        document.getElementById('tripNewOnlyOptions').style.display = '';
+        document.getElementById('tripModal').querySelector('.modal-title').textContent = 'Plan New Trip';
+        document.getElementById('tripSubmitBtn').textContent = 'Create Trip';
+        e.target.reset(); closeModal('tripModal');
+        return;
+      }
+
       var addToCal = document.getElementById('tripAddToCalendar').checked;
       var addToMap = document.getElementById('tripAddToMap').checked;
 
-      var trips = Store.get('trips') || [];
       var newTrip = {
         id: Store.getNextId('trips'),
         name: name, destination: dest, startDate: startDate, endDate: endDate,
-        budget: budget, spent: 0, status: 'upcoming', coords: null,
+        budget: budget, spent: 0, status: status, coords: null,
         itinerary: [], documents: [], budgetItems: [], notes: notes ? [{ title: 'Trip Notes', text: notes }] : []
       };
 
       // Write to calendar
       if (addToCal) {
         var events = Store.get('events') || [];
-        events.push({
-          id: Store.getNextId('events'),
-          title: '\u2708\uFE0F ' + name + ' - Departure',
-          date: startDate, time: '', category: 'travel', recurring: false
-        });
-        events.push({
-          id: Store.getNextId('events') + 1,
-          title: '\u2708\uFE0F ' + name + ' - Return',
-          date: endDate, time: '', category: 'travel', recurring: false
-        });
+        events.push({ id: Store.getNextId('events'), title: '✈️ ' + name + ' - Departure', date: startDate, time: '', category: 'travel', recurring: false });
+        events.push({ id: Store.getNextId('events') + 1, title: '✈️ ' + name + ' - Return', date: endDate, time: '', category: 'travel', recurring: false });
         Store.set('events', events);
         renderCalendar(); renderUpcomingEvents();
       }
