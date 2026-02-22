@@ -90,6 +90,7 @@
     .map-header h3 { font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; }
     .map-header p { font-size: 0.9rem; color: var(--text-medium); }
     #worldMap { height: 450px; width: 100%; }
+    #tripsWorldMap { height: 350px; width: 100%; }
     
     .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
     .photo-item { aspect-ratio: 1; border-radius: 6px; background: var(--bg-light); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-light); font-size: 2rem; cursor: pointer; transition: all 0.2s ease; }
@@ -942,40 +943,7 @@
             <button class="btn btn-small" onclick="openModal('photoModal')">Upload Photos</button>
           </div>
         </div>
-        <div class="photo-grid" id="photoGrid">
-          <div class="photo-card" data-year="2025">
-            <div class="photo-placeholder">📷</div>
-            <div class="photo-info">Christmas 2025<br><span style="font-size: 0.75rem; opacity: 0.8;">Dec 25</span></div>
-          </div>
-          <div class="photo-card" data-year="2026">
-            <div class="photo-placeholder">📷</div>
-            <div class="photo-info">Finn's Match Win<br><span style="font-size: 0.75rem; opacity: 0.8;">Jan 18</span></div>
-          </div>
-          <div class="photo-card" data-year="2025">
-            <div class="photo-placeholder">📷</div>
-            <div class="photo-info">Family Dinner<br><span style="font-size: 0.75rem; opacity: 0.8;">Nov 20</span></div>
-          </div>
-          <div class="photo-card" data-year="2025">
-            <div class="photo-placeholder">📷</div>
-            <div class="photo-info">Beach Trip<br><span style="font-size: 0.75rem; opacity: 0.8;">Oct 15</span></div>
-          </div>
-          <div class="photo-card" data-year="2026">
-            <div class="photo-placeholder">📷</div>
-            <div class="photo-info">Birthday Party<br><span style="font-size: 0.75rem; opacity: 0.8;">Jan 5</span></div>
-          </div>
-          <div class="photo-card" data-year="2025">
-            <div class="photo-placeholder">📷</div>
-            <div class="photo-info">School Event<br><span style="font-size: 0.75rem; opacity: 0.8;">Dec 10</span></div>
-          </div>
-          <div class="photo-card" data-year="2025">
-            <div class="photo-placeholder">📷</div>
-            <div class="photo-info">Soccer Finals<br><span style="font-size: 0.75rem; opacity: 0.8;">Nov 5</span></div>
-          </div>
-          <div class="photo-card" data-year="2026">
-            <div class="photo-placeholder">📷</div>
-            <div class="photo-info">New Year 2026<br><span style="font-size: 0.75rem; opacity: 0.8;">Jan 1</span></div>
-          </div>
-        </div>
+        <div class="photo-grid" id="photoGrid"></div>
       </div>
     </div>
 
@@ -1046,6 +1014,14 @@
       <div class="page-header">
         <h1 class="page-title">Family Trips</h1>
         <p class="page-subtitle">Adventures and getaways</p>
+      </div>
+
+      <div class="map-card" style="margin-bottom: 2rem;">
+        <div class="map-header">
+          <h3>Destination Map</h3>
+          <p>Green = visited &nbsp;&middot;&nbsp; Blue = planned</p>
+        </div>
+        <div id="tripsWorldMap"></div>
       </div>
 
       <div class="trips-layout">
@@ -1556,7 +1532,8 @@
       var target = document.getElementById('page-' + pageId);
       if (target) target.classList.add('active');
       window.scrollTo(0, 0);
-      if (pageId === 'trips') { renderTrips(); }
+      if (pageId === 'trips') { renderTrips(); initTripsMap(); }
+      if (pageId === 'photos') { renderPhotos(); }
       if (pageId === 'calendar') { renderCalendar(); renderEventList(); }
       if (pageId === 'home') {
         renderUpcomingEvents();
@@ -1696,7 +1673,7 @@
           sport_entries: function() { renderSportEntries(); },
           photos: function() { renderPhotos(); renderHomePhotos(); },
           memories: function() { renderMemories(); },
-          trips: function() { renderTrips(); initMap(); }
+          trips: function() { renderTrips(); initMap(); initTripsMap(); }
         };
         var keys = Object.keys(renderMap);
         for (var i = 0; i < keys.length; i++) {
@@ -1715,6 +1692,57 @@
         }
       }
     };
+
+    // =====================================================
+    // PHOTO STORAGE (IndexedDB — no 5MB limit)
+    // =====================================================
+    var PhotoDB = {
+      _db: null,
+      open: function(callback) {
+        if (this._db) { callback(this._db); return; }
+        var req = indexedDB.open('familyhub_photos', 1);
+        req.onupgradeneeded = function(e) {
+          e.target.result.createObjectStore('photos', { keyPath: 'id' });
+        };
+        req.onsuccess = function(e) { PhotoDB._db = e.target.result; callback(PhotoDB._db); };
+        req.onerror = function() { callback(null); };
+      },
+      getAll: function(callback) {
+        this.open(function(db) {
+          if (!db) { callback([]); return; }
+          var req = db.transaction('photos', 'readonly').objectStore('photos').getAll();
+          req.onsuccess = function() {
+            var photos = (req.result || []).sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
+            callback(photos);
+          };
+          req.onerror = function() { callback([]); };
+        });
+      },
+      save: function(photos) {
+        this.open(function(db) {
+          if (!db) return;
+          var tx = db.transaction('photos', 'readwrite');
+          var store = tx.objectStore('photos');
+          store.clear();
+          for (var i = 0; i < photos.length; i++) store.put(photos[i]);
+        });
+      }
+    };
+
+    // Migrate any photos previously saved to localStorage into IndexedDB
+    function migratePhotosToIndexedDB(callback) {
+      var raw = null;
+      try { raw = localStorage.getItem('fh_photos'); } catch(e) {}
+      if (!raw) { callback(); return; }
+      PhotoDB.getAll(function(existing) {
+        if (existing.length > 0) { callback(); return; } // already migrated
+        var photos = [];
+        try { photos = JSON.parse(raw) || []; } catch(e) {}
+        if (photos.length > 0) PhotoDB.save(photos);
+        try { localStorage.removeItem('fh_photos'); } catch(e) {}
+        callback();
+      });
+    }
 
     // =====================================================
     // SEED DEFAULT DATA
@@ -2256,50 +2284,49 @@
     function renderPhotos() {
       var container = document.getElementById('photoGrid');
       if (!container) return;
-      var photos = Store.get('photos') || [];
-      var html = '';
-      for (var i = 0; i < photos.length; i++) {
-        var p = photos[i];
-        var d = new Date(p.date + 'T00:00:00');
-        var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        html += '<div class="photo-card" data-year="' + d.getFullYear() + '" style="position:relative;">';
-        if (p.src) {
-          html += '<img src="' + p.src + '" alt="' + p.description + '" onclick="openLightbox(\'' + p.src.replace(/'/g,"\\'") + '\', \'' + p.description.replace(/'/g,"\\'") + '\')" style="cursor:pointer;">';
-        } else {
-          html += '<div class="photo-placeholder" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--bg-light);font-size:2rem;">\ud83d\udcf7</div>';
+      PhotoDB.getAll(function(photos) {
+        var html = '';
+        for (var i = 0; i < photos.length; i++) {
+          var p = photos[i];
+          var d = new Date(p.date + 'T00:00:00');
+          var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          html += '<div class="photo-card" data-year="' + d.getFullYear() + '" style="position:relative;">';
+          if (p.src) {
+            html += '<img src="' + p.src + '" alt="' + p.description + '" onclick="openLightbox(\'' + p.src.replace(/'/g,"\\'") + '\', \'' + p.description.replace(/'/g,"\\'") + '\')" style="cursor:pointer;">';
+          } else {
+            html += '<div class="photo-placeholder" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--bg-light);font-size:2rem;">📷</div>';
+          }
+          html += '<div class="photo-info">' + p.description + '<br><span style="font-size:0.75rem;opacity:0.8;">' + monthNames[d.getMonth()] + ' ' + d.getDate() + '</span></div>';
+          html += '<button class="delete-btn" onclick="deletePhoto(' + p.id + ')" style="position:absolute;top:0.5rem;right:0.5rem;background:rgba(239,68,68,0.9);color:white;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:0.7rem;">X</button>';
+          html += '</div>';
         }
-        html += '<div class="photo-info">' + p.description + '<br><span style="font-size:0.75rem;opacity:0.8;">' + monthNames[d.getMonth()] + ' ' + d.getDate() + '</span></div>';
-        html += '<button class="delete-btn" onclick="deletePhoto(' + p.id + ')" style="position:absolute;top:0.5rem;right:0.5rem;background:rgba(239,68,68,0.9);color:white;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:0.7rem;">X</button>';
-        html += '</div>';
-      }
-      if (photos.length === 0) html = '<p style="color: var(--text-medium); text-align:center; padding:2rem;">No photos yet. Upload some!</p>';
-      container.innerHTML = html;
+        if (photos.length === 0) html = '<p style="color: var(--text-medium); text-align:center; padding:2rem;">No photos yet. Upload some!</p>';
+        container.innerHTML = html;
+      });
     }
 
     function renderHomePhotos() {
       var container = document.getElementById('homePhotoGrid');
       if (!container) return;
-      var photos = Store.get('photos') || [];
-      // Only show photos with actual image data, sorted by most recent date
-      var recent = photos.filter(function(p) { return p.src; })
-        .sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); })
-        .slice(0, 9);
-      var html = '';
-      for (var i = 0; i < recent.length; i++) {
-        var p = recent[i];
-        var safeSrc = p.src.replace(/'/g,"\\'");
-        var safeDesc = (p.description || '').replace(/'/g,"\\'");
-        html += '<div class="home-photo-item" onclick="openLightbox(\'' + safeSrc + '\', \'' + safeDesc + '\')">';
-        html += '<img src="' + p.src + '" alt="' + (p.description || '') + '"></div>';
-      }
-      if (recent.length === 0) {
-        html = '<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-medium);">' +
-          '<div style="font-size:2.5rem;margin-bottom:0.75rem;">📷</div>' +
-          '<p style="margin-bottom:0.75rem;">No photos yet — upload your first family photo!</p>' +
-          '<button class="btn btn-small" onclick="openModal(\'photoModal\')">Upload Photos</button>' +
-          '</div>';
-      }
-      container.innerHTML = html;
+      PhotoDB.getAll(function(photos) {
+        var recent = photos.filter(function(p) { return p.src; }).slice(0, 9);
+        var html = '';
+        for (var i = 0; i < recent.length; i++) {
+          var p = recent[i];
+          var safeSrc = p.src.replace(/'/g,"\\'");
+          var safeDesc = (p.description || '').replace(/'/g,"\\'");
+          html += '<div class="home-photo-item" onclick="openLightbox(\'' + safeSrc + '\', \'' + safeDesc + '\')">';
+          html += '<img src="' + p.src + '" alt="' + (p.description || '') + '"></div>';
+        }
+        if (recent.length === 0) {
+          html = '<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-medium);">' +
+            '<div style="font-size:2.5rem;margin-bottom:0.75rem;">📷</div>' +
+            '<p style="margin-bottom:0.75rem;">No photos yet — upload your first family photo!</p>' +
+            '<button class="btn btn-small" onclick="openModal(\'photoModal\')">Upload Photos</button>' +
+            '</div>';
+        }
+        container.innerHTML = html;
+      });
     }
 
     function filterPhotos(year) {
@@ -2336,11 +2363,12 @@
 
     function deletePhoto(id) {
       if (!confirm('Delete this photo?')) return;
-      var photos = Store.get('photos') || [];
-      photos = photos.filter(function(p) { return p.id !== id; });
-      Store.set('photos', photos);
-      renderPhotos();
-      renderHomePhotos();
+      PhotoDB.getAll(function(photos) {
+        photos = photos.filter(function(p) { return p.id !== id; });
+        PhotoDB.save(photos);
+        renderPhotos();
+        renderHomePhotos();
+      });
     }
 
     // =====================================================
@@ -2613,7 +2641,7 @@
       trips = trips.filter(function(t) { return t.id !== tripId; });
       Store.set('trips', trips);
       renderTrips();
-      initMap();
+      initMap(); initTripsMap();
       document.getElementById('tripDetail').innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-medium);"><p>Select a trip to view details</p></div>';
     }
 
@@ -2652,6 +2680,37 @@
       // Fix Leaflet rendering when container wasn't fully visible at init
       setTimeout(function() { if (worldMap) worldMap.invalidateSize(); }, 200);
       setTimeout(function() { if (worldMap) worldMap.invalidateSize(); }, 800);
+    }
+
+    var tripsMap = null;
+    function initTripsMap() {
+      var mapEl = document.getElementById('tripsWorldMap');
+      if (!mapEl) return;
+      if (tripsMap) { tripsMap.remove(); tripsMap = null; }
+      tripsMap = L.map('tripsWorldMap').setView([-10, 130], 3);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(tripsMap);
+
+      var trips = Store.get('trips') || [];
+      var bounds = [];
+      for (var i = 0; i < trips.length; i++) {
+        var t = trips[i];
+        if (t.coords && t.coords.length === 2) {
+          var color = t.status === 'visited' ? 'green' : 'blue';
+          L.circleMarker(t.coords, { radius: 8, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.8 })
+            .addTo(tripsMap)
+            .bindPopup('<strong>' + t.name + '</strong><br>' + t.destination + '<br><em>' + t.startDate + '</em>');
+          bounds.push(t.coords);
+        }
+      }
+      L.circleMarker([-42.8821, 147.3272], { radius: 10, fillColor: '#ef4444', color: '#fff', weight: 2, fillOpacity: 0.9 })
+        .addTo(tripsMap).bindPopup('<strong>Home</strong><br>Hobart, Tasmania');
+      bounds.push([-42.8821, 147.3272]);
+
+      if (bounds.length > 1) { tripsMap.fitBounds(bounds, { padding: [30, 30] }); }
+      setTimeout(function() { if (tripsMap) tripsMap.invalidateSize(); }, 200);
+      setTimeout(function() { if (tripsMap) tripsMap.invalidateSize(); }, 800);
     }
 
     function geocodeDestination(destination, callback) {
@@ -2733,36 +2792,40 @@
       var description = document.getElementById('photoDescription').value;
       if (!fileInput.files.length) return;
 
-      var photos = Store.get('photos') || [];
-      var processed = 0;
-      var failed = 0;
       var total = fileInput.files.length;
+      var files = Array.prototype.slice.call(fileInput.files);
 
-      for (var i = 0; i < total; i++) {
-        (function(file, idx) {
-          resizeImage(file, 800, function(dataUrl) {
-            if (dataUrl) {
-              var desc = total === 1 ? (description || file.name) : (description ? description + ' (' + (idx+1) + ')' : file.name);
-              photos.unshift({ id: Store.getNextId('photos') + idx, description: desc, date: date, src: dataUrl });
-            } else {
-              failed++;
-            }
-            processed++;
-            if (processed === total) {
-              Store.set('photos', photos);
-              renderPhotos(); renderHomePhotos();
-              if (failed > 0) {
-                alert((total - failed) + ' photo(s) uploaded. ' + failed + ' failed to process.');
+      PhotoDB.getAll(function(photos) {
+        var processed = 0;
+        var failed = 0;
+        var baseId = Date.now();
+
+        for (var i = 0; i < total; i++) {
+          (function(file, idx) {
+            resizeImage(file, 800, function(dataUrl) {
+              if (dataUrl) {
+                var desc = total === 1 ? (description || file.name) : (description ? description + ' (' + (idx+1) + ')' : file.name);
+                photos.unshift({ id: baseId + idx, description: desc, date: date, src: dataUrl });
               } else {
-                alert(total + ' photo(s) uploaded!');
+                failed++;
               }
-              e.target.reset();
-              document.getElementById('photoPreview').innerHTML = '';
-              closeModal('photoModal');
-            }
-          });
-        })(fileInput.files[i], i);
-      }
+              processed++;
+              if (processed === total) {
+                PhotoDB.save(photos);
+                renderPhotos(); renderHomePhotos();
+                if (failed > 0) {
+                  alert((total - failed) + ' photo(s) uploaded. ' + failed + ' failed to process.');
+                } else {
+                  alert(total + ' photo(s) uploaded!');
+                }
+                e.target.reset();
+                document.getElementById('photoPreview').innerHTML = '';
+                closeModal('photoModal');
+              }
+            });
+          })(files[i], i);
+        }
+      });
     }
 
     function resizeImage(file, maxWidth, callback) {
@@ -2853,12 +2916,12 @@
           if (coords) newTrip.coords = coords;
           trips.push(newTrip);
           Store.set('trips', trips);
-          renderTrips(); initMap();
+          renderTrips(); initMap(); initTripsMap();
         });
       } else {
         trips.push(newTrip);
         Store.set('trips', trips);
-        renderTrips();
+        renderTrips(); initTripsMap();
       }
 
       alert('Trip created!' + (addToCal ? ' Added to calendar.' : ''));
@@ -3157,10 +3220,12 @@
 
       checkAuth();
 
-      seedDefaultData(function() {
-        Store.initListeners();
-        Store._ready = true;
-        renderAll();
+      migratePhotosToIndexedDB(function() {
+        seedDefaultData(function() {
+          Store.initListeners();
+          Store._ready = true;
+          renderAll();
+        });
       });
     });
 
